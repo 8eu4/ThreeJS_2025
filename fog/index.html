@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Three.js Blender-style Controls</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        overflow: hidden; /* Mencegah scrollbar */
+      }
+      canvas {
+        display: block;
+      }
+      /* Styling untuk lil-gui agar tidak tertimpa canvas */
+      .lil-gui {
+        z-index: 10 !important;
+        right: 0;
+        top: 0;
+      }
+
+      /* 1. CSS UNTUK PANEL HIERARKI */
+      #hierarchy-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 220px;
+        height: 100vh;
+        background: #f0f0f0;
+        border-right: 1px solid #ccc;
+        z-index: 5;
+        padding: 10px;
+        box-sizing: border-box; /* Agar padding tidak menambah lebar */
+        overflow-y: auto;
+      }
+      #hierarchy-panel h3 {
+        margin: 0 0 10px 0;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ccc;
+      }
+      .hierarchy-item {
+        padding: 5px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .hierarchy-item:hover {
+        background: #e0e0e0;
+      }
+      .hierarchy-item.selected {
+        background: #007bff;
+        color: white;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 2. HTML UNTUK PANEL HIERARKI -->
+    <div id="hierarchy-panel">
+      <h3>Scene Hierarchy</h3>
+      <div id="hierarchy-list"></div>
+    </div>
+
+    <!-- Import map untuk Three.js dan add-ons dari CDN -->
+    <script async src="https://unpkg.com/es-module-shims@1.10.0"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

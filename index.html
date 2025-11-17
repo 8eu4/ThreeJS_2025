@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Three.js Modular App</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+      .lil-gui {
+        z-index: 10 !important;
+        right: 0;
+        top: 0;
+      }
+      #hierarchy-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 240px;
+        height: 100vh;
+        background: #f0f0f0;
+        border-right: 1px solid #ccc;
+        z-index: 5;
+        padding: 10px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        user-select: none;
+      }
+      #hierarchy-panel h3 {
+        margin: 0 0 10px 0;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ccc;
+      }
+      
+      /* --- PERBAIKAN CSS HIERARKI --- */
+      .hierarchy-item {
+        /* Kontainer untuk content dan child-container */
+      }
+
+      .hierarchy-item-content {
+        display: flex;
+        align-items: center;
+        padding: 4px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .hierarchy-item-content:hover {
+        background: #e0e0e0;
+      }
+      .hierarchy-item-content.selected {
+        background: #007bff;
+        color: white;
+        font-weight: bold;
+      }
+      
+      .hierarchy-toggle {
+        width: 10px;
+        height: 10px;
+        margin-right: 4px;
+        display: inline-block;
+        font-size: 10px;
+        flex-shrink: 0;
+      }
+      
+      .hierarchy-children {
+        /* Default-nya tertutup */
+        display: none;
+      }
+
+      .hierarchy-item.open + .hierarchy-children {
+        /* Saat .open, tampilkan child-container */
+        display: block;
+      }
+      /* --- AKHIR CSS --- */
+
+
+      /* CSS Efek Kedip Mata */
+      .eyelid {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 50%;
+        background: #111;
+        z-index: 100;
+        transition: transform 0.25s ease-in-out;
+        box-shadow: 0px 0px 35px 25px rgba(0, 0, 0, 0.8);
+        pointer-events: none;
+      }
+      #eyelid-top {
+        top: 0;
+        transform: translateY(-100%);
+      }
+      #eyelid-bottom {
+        bottom: 0;
+        transform: translateY(100%);
+      }
+      body.eyes-closed #eyelid-top {
+        transform: translateY(0%);
+        box-shadow: 0px 10px 35px 25px rgba(0, 0, 0, 0.8);
+      }
+      body.eyes-closed #eyelid-bottom {
+        transform: translateY(0%);
+        box-shadow: 0px -10px 35px 25px rgba(0, 0, 0, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hierarchy-panel">
+      <h3>Scene Hierarchy</h3>
+      <div id="hierarchy-list"></div>
+    </div>
+
+    <div id="eyelid-top" class="eyelid"></div>
+    <div id="eyelid-bottom" class="eyelid"></div>
+
+    <script async src="https://unpkg.com/es-module-shims@1.10.0"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/",
+          "three/addons/controls/FlyControls.js": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/controls/FlyControls.js"
+        }
+      }
+    </script>
+
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
