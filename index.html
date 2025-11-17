@@ -42,7 +42,7 @@
         border-bottom: 1px solid #ccc;
       }
       
-      /* --- PERBAIKAN CSS HIERARKI --- */
+      /* --- CSS HIERARKI (Tidak Berubah) --- */
       .hierarchy-item {
         /* Kontainer untuk content dan child-container */
       }
@@ -88,7 +88,16 @@
       /* --- AKHIR CSS --- */
 
 
-      /* CSS Efek Kedip Mata */
+      /* --- (1) TAMBAHAN BARU: Feedback Geser Angka GUI --- */
+      /* Target bagian .widget (kotak angka) di dalam .controller.number */
+      .lil-gui .controller.number .widget {
+        /* Paksa kursor jadi panah kiri-kanan */
+        cursor: ew-resize !important;
+      }
+      /* --- AKHIR TAMBAHAN --- */
+
+
+      /* --- PERBAIKAN CSS EFEK KEDIP MATA --- */
       .eyelid {
         position: absolute;
         left: 0;
@@ -96,8 +105,8 @@
         height: 50%;
         background: #111;
         z-index: 100;
-        transition: transform 0.25s ease-in-out;
-        box-shadow: 0px 0px 35px 25px rgba(0, 0, 0, 0.8);
+        transition: transform 0.25s ease-in-out, box-shadow 0.25s ease-in-out; 
+        box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 0); 
         pointer-events: none;
       }
       #eyelid-top {
@@ -116,6 +125,7 @@
         transform: translateY(0%);
         box-shadow: 0px -10px 35px 25px rgba(0, 0, 0, 0.8);
       }
+      /* --- AKHIR PERBAIKAN CSS --- */
     </style>
   </head>
   <body>

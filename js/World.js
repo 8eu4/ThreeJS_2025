@@ -23,6 +23,8 @@ export class World {
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
 
+        this.ignoreNextClick = false; // <-- (1) TAMBAHAN BARU
+
         this._init();
     }
 
@@ -56,9 +58,16 @@ export class World {
         window.addEventListener('resize', () => this.onWindowResize());
         this.renderer.domElement.addEventListener('click', (e) => this.onCanvasClick(e));
 
+        // --- (2) MODIFIKASI: Hapus listener 'dragging-changed' yang lama
+        // this.transformControls.addEventListener('dragging-changed', (event) => {
+        //     this.orbitControls.enabled = !event.value;
+        // });
+        // --- GANTI DENGAN INI ---
         this.transformControls.addEventListener('dragging-changed', (event) => {
             this.orbitControls.enabled = !event.value;
+            // 'isGizmoDragging' tidak lagi diperlukan karena kita pakai 'ignoreNextClick'
         });
+
 
         this.renderer.domElement.addEventListener('mousedown', (e) => this._onMouseDown(e));
         this.renderer.domElement.addEventListener('mouseup', (e) => this._onMouseUp(e));
@@ -132,8 +141,17 @@ export class World {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // --- PERBAIKAN SELEKSI ANAK TERDALAM ---
+    // --- (3) MODIFIKASI: Cek flag 'ignoreNextClick' ---
     onCanvasClick(event) {
+        // --- TAMBAHAN ---
+        // Jika flag ini true, berarti 'mouseUp' dari gizmo baru saja terjadi.
+        // Abaikan 'click' ini dan reset flag-nya.
+        if (this.ignoreNextClick) {
+            this.ignoreNextClick = false;
+            return;
+        }
+        // --- AKHIR TAMBAHAN ---
+
         if (this.transformControls.dragging || !this.stateManager || this.flyControls.enabled) {
             return;
         }
@@ -142,12 +160,9 @@ export class World {
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
-        // 1. Raycast ke SEMUA objek, bukan hanya yg draggable
-        const intersects = this.raycaster.intersectObjects(this.state.allSelectableObjects, true); // 'true' untuk rekursif
+        const intersects = this.raycaster.intersectObjects(this.state.allSelectableObjects, true); 
 
         if (intersects.length > 0) {
-            // 2. Langsung pilih objek pertama yang kena (intersects[0].object)
-            // Ini adalah anak terdalam yang paling dekat dengan kamera.
             let objectToSelect = intersects[0].object;
             this.stateManager.setSelectedObject(objectToSelect);
             
@@ -155,7 +170,6 @@ export class World {
             this.stateManager.setSelectedObject(null); // Deselect
         }
     }
-    // --- AKHIR PERBAIKAN ---
 
     start() {
         this.renderer.setAnimationLoop(() => this.animate());

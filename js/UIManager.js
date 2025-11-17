@@ -1,6 +1,6 @@
 // js/UIManager.js
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import * as THREE from 'three';
+import * as THREE from 'three'; // Penting untuk konversi
 import { MinMaxGUIHelper, ColorGUIHelper } from './helper.js';
 import { TransformCommand } from './Commands.js';
 
@@ -27,7 +27,7 @@ export class UIManager {
         this.cameraFolder = this.gui.addFolder('Camera');
         this.gizmoFolder = this.gui.addFolder('Gizmo');
         this.saveLoadFolder = this.gui.addFolder('Save/Load');
-        
+
         this.lightGuiCache = new Map();
         this.animationGuiCache = new Map();
         this.transformGuiCache = new Map();
@@ -63,7 +63,7 @@ export class UIManager {
             }
 
             // Simpan state LAMA dari objek yang dipilih
-            const object = this.world.transformControls.object; // <-- BENAR
+            const object = this.world.transformControls.object;
             if (object) {
                 this._tempOldTransform = {
                     position: object.position.clone(),
@@ -76,7 +76,9 @@ export class UIManager {
         // Saat user selesai men-drag (melepas mouse)
         this.world.transformControls.addEventListener('mouseUp', (event) => {
 
-            const object = this.world.transformControls.object; // <-- BENAR
+            this.world.ignoreNextClick = true;
+
+            const object = this.world.transformControls.object;
             if (!this._tempOldTransform || !object) {
                 return;
             }
@@ -89,11 +91,12 @@ export class UIManager {
             };
 
             // ---- INTI LOGIKA UNDO ----
-            // Buat Perintah (Command) baru
-            const command = new TransformCommand(object, this._tempOldTransform, newTransform);
-
-            // Jalankan perintah melalui History Manager
-            this.history.execute(command);
+            if (!this._tempOldTransform.position.equals(newTransform.position) ||
+                !this._tempOldTransform.rotation.equals(newTransform.rotation) ||
+                !this._tempOldTransform.scale.equals(newTransform.scale)) {
+                const command = new TransformCommand(object, this._tempOldTransform, newTransform);
+                this.history.execute(command);
+            }
             // -------------------------
 
             this._tempOldTransform = null;
@@ -130,21 +133,18 @@ export class UIManager {
         };
 
         reader.readAsText(file);
-
-        // Reset input agar bisa load file yang sama 2x
         event.target.value = null;
     }
 
-    // --- (1) FUNGSI HELPER BARU (DIPERBAIKI) ---
     _createCollapsibleSection(parentElement, title, startOpen = true) {
         const sectionItem = document.createElement('div');
-        sectionItem.className = 'hierarchy-item'; 
+        sectionItem.className = 'hierarchy-item';
         if (startOpen) {
             sectionItem.classList.add('open');
         }
 
         const content = document.createElement('div');
-        content.className = 'hierarchy-item-content'; 
+        content.className = 'hierarchy-item-content';
         content.style.fontWeight = 'bold';
         content.style.backgroundColor = '#e0e0e0';
         content.style.position = 'sticky';
@@ -164,13 +164,10 @@ export class UIManager {
         sectionItem.appendChild(content);
 
         const childContainer = document.createElement('div');
-        childContainer.className = 'hierarchy-children'; // Kontainer untuk item
-        
-        // --- PERBAIKAN STRUKTUR HTML ---
-        // 'sectionItem' (judul) dan 'childContainer' (isi) harus SIBLING
+        childContainer.className = 'hierarchy-children';
+
         parentElement.appendChild(sectionItem);
         parentElement.appendChild(childContainer);
-        // --- AKHIR PERBAIKAN ---
 
         content.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -178,18 +175,15 @@ export class UIManager {
             toggle.textContent = sectionItem.classList.contains('open') ? '▼' : '►';
         });
 
-        return childContainer; // Kembalikan kontainer anaknya
+        return childContainer;
     }
 
-    // --- (2) FUNGSI buildHierarchyPanel (TIDAK BERUBAH) ---
     buildHierarchyPanel() {
         this.hierarchyListEl.innerHTML = ""; // Clear
 
-        // 1. Buat judul dan kontainer
         const lightsContainer = this._createCollapsibleSection(this.hierarchyListEl, "Lights", true);
         const objectsContainer = this._createCollapsibleSection(this.hierarchyListEl, "Objects", true);
 
-        // 2. Pilah dan bangun node
         this.world.scene.children.forEach(child => {
             if (child.isLight) {
                 this._buildHierarchyNode(child, lightsContainer, 0);
@@ -203,21 +197,15 @@ export class UIManager {
         });
     }
 
-    // --- (3) FUNGSI _buildHierarchyNode (DIPERBAIKI) ---
     _buildHierarchyNode(object, parentElement, depth) {
-        // 1. Cek apakah objek ini selectable.
         if (!this.state.allSelectableObjects.includes(object)) {
-            // Jika tidak, abaikan objek ini TAPI TETAP proses anak-anaknya.
             object.children.forEach(child => {
                 this._buildHierarchyNode(child, parentElement, depth);
             });
-            return; // Selesai untuk objek ini
+            return;
         }
 
-        // 2. Objek ini selectable, mari kita buat item UI-nya.
         const hasChildren = object.children.length > 0;
-
-        // 3. Buat elemen DOM
         const item = document.createElement('div');
         item.className = 'hierarchy-item';
 
@@ -236,13 +224,9 @@ export class UIManager {
         content.appendChild(label);
         content.appendChild(toggle);
         item.appendChild(content);
-        
-        // --- PERBAIKAN STRUKTUR HTML ---
-        // Tambahkan 'item' ke parent SEKARANG
-        parentElement.appendChild(item);
-        // --- AKHIR PERBAIKAN ---
 
-        // 4. Buat kontainer anak HANYA jika ada anak
+        parentElement.appendChild(item);
+
         let childContainer = null;
         let hasValidChildren = false;
 
@@ -250,24 +234,18 @@ export class UIManager {
             childContainer = document.createElement('div');
             childContainer.className = 'hierarchy-children';
 
-            // Panggil rekursif untuk SEMUA anak
             object.children.forEach(child => {
                 this._buildHierarchyNode(child, childContainer, depth + 1);
             });
 
-            // Cek apakah kontainer anak benar-benar punya isi
             if (childContainer.children.length > 0) {
                 hasValidChildren = true;
-                // --- PERBAIKAN STRUKTUR HTML ---
-                // Tambahkan 'childContainer' sebagai SIBLING dari 'item'
                 parentElement.appendChild(childContainer);
-                // --- AKHIR PERBAIKAN ---
             }
         }
 
-        // 5. Atur toggle berdasarkan apakah ada anak yang VALID
         if (hasValidChildren) {
-            toggle.textContent = '►'; // Tutup by default
+            toggle.textContent = '►';
 
             toggle.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -275,21 +253,16 @@ export class UIManager {
                 toggle.textContent = item.classList.contains('open') ? '▼' : '►';
             });
         } else {
-            toggle.style.display = 'none'; // Sembunyikan toggle
+            toggle.style.display = 'none';
         }
 
-        // 6. Event listener untuk seleksi (di 'content')
         content.addEventListener('click', (e) => {
             e.stopPropagation();
             if (this.stateManager) {
                 this.stateManager.setSelectedObject(object);
             }
         });
-
-        // 7. HAPUS DARI SINI
-        // parentElement.appendChild(item);
     }
-    // --- AKHIR PERBAIKAN HIERARKI ---
 
     updateHierarchyHighlight() {
         const items = this.hierarchyListEl.querySelectorAll('.hierarchy-item-content');
@@ -300,36 +273,26 @@ export class UIManager {
 
         if (this.state.selectedObject) {
             const selectedUUID = this.state.selectedObject.uuid;
-            // Temukan 'content' berdasarkan UUID
             const itemToSelect = this.hierarchyListEl.querySelector(`[data-object-uuid="${selectedUUID}"]`);
 
             if (itemToSelect) {
                 itemToSelect.classList.add('selected');
 
-                // Dapatkan .hierarchy-item terdekat
                 let currentItem = itemToSelect.closest('.hierarchy-item');
-                if (!currentItem) return; // Pengaman jika item tidak ditemukan
-                
-                // --- PERBAIKAN LOGIKA EXPAND ---
-                // Dapatkan .hierarchy-children terdekat (parent container)
+                if (!currentItem) return;
+
                 let parentContainer = currentItem.closest('.hierarchy-children');
 
                 while (parentContainer) {
-                    // Dapatkan .hierarchy-item dari parent container itu
-                    // Ini adalah SIBLING SEBELUMNYA
                     let parentItem = parentContainer.previousElementSibling;
 
                     if (parentItem && parentItem.classList.contains('hierarchy-item') && !parentItem.classList.contains('open')) {
-                        // Buka parent
                         parentItem.classList.add('open');
-                        // Update togglenya
                         const toggle = parentItem.querySelector('.hierarchy-item-content .hierarchy-toggle');
                         if (toggle) toggle.textContent = '▼';
                     }
-                    // Naik ke atas
                     parentContainer = parentItem ? parentItem.closest('.hierarchy-children') : null;
                 }
-                // --- AKHIR PERBAIKAN ---
             }
         }
     }
@@ -454,64 +417,67 @@ export class UIManager {
     }
 
 
+    // --- (***) FUNGSI YANG DIPERBAIKI (***) ---
     _buildTransformGUI(obj) {
         // Folder sekarang ditambahkan ke root GUI
         const folder = this.gui.addFolder(`${obj.name} (Transform)`);
 
-        // --- (1) Simpan state LAMA saat GUI dibuat ---
         let oldTransform = {
             position: obj.position.clone(),
             rotation: obj.rotation.clone(),
             scale: obj.scale.clone()
         };
 
-        // --- (2) Buat satu fungsi callback untuk semua ---
         const onTransformFinishChange = () => {
-            // Dapatkan state BARU setelah diubah oleh GUI
             const newTransform = {
                 position: obj.position.clone(),
                 rotation: obj.rotation.clone(),
                 scale: obj.scale.clone()
             };
 
-            // Buat Perintah (Command) baru
-            const command = new TransformCommand(obj, oldTransform, newTransform);
-            
-            // Jalankan perintah melalui History Manager
-            this.history.execute(command);
-            
-            // PENTING: Update 'oldTransform' 
-            oldTransform = newTransform;
+            // Hanya eksekusi jika ada perubahan
+            if (!oldTransform.position.equals(newTransform.position) ||
+                !oldTransform.rotation.equals(newTransform.rotation) ||
+                !oldTransform.scale.equals(newTransform.scale)) {
+                const command = new TransformCommand(obj, oldTransform, newTransform);
+                this.history.execute(command);
+                oldTransform = newTransform;
+            }
         };
 
-
-        // --- (3) Tambahkan .onFinishChange() ke setiap controller ---
-        const posFolder = folder.addFolder('Position');
-        posFolder.add(obj.position, 'x').step(0.1).listen()
-            .onFinishChange(onTransformFinishChange);
-        posFolder.add(obj.position, 'y').step(0.1).listen()
-            .onFinishChange(onTransformFinishChange);
-        posFolder.add(obj.position, 'z').step(0.1).listen()
-            .onFinishChange(onTransformFinishChange);
+        const rotationInDegrees = {
+            get x() { return THREE.MathUtils.radToDeg(obj.rotation.x); },
+            set x(v) { obj.rotation.x = THREE.MathUtils.degToRad(v); },
+            get y() { return THREE.MathUtils.radToDeg(obj.rotation.y); },
+            set y(v) { obj.rotation.y = THREE.MathUtils.degToRad(v); },
+            get z() { return THREE.MathUtils.radToDeg(obj.rotation.z); },
+            set z(v) { obj.rotation.z = THREE.MathUtils.degToRad(v); }
+        };
 
         const rotFolder = folder.addFolder('Rotation');
-        rotFolder.add(obj.rotation, 'x', -Math.PI, Math.PI).step(0.01).listen()
+        // --- GANTI -360, 360 MENJADI -180, 180 ---
+        rotFolder.add(rotationInDegrees, 'x', -180, 180).step(1).decimals(2).listen()
             .onFinishChange(onTransformFinishChange);
-        rotFolder.add(obj.rotation, 'y', -Math.PI, Math.PI).step(0.01).listen()
+        rotFolder.add(rotationInDegrees, 'y', -180, 180).step(1).decimals(2).listen()
             .onFinishChange(onTransformFinishChange);
-        rotFolder.add(obj.rotation, 'z', -Math.PI, Math.PI).step(0.01).listen()
+        rotFolder.add(rotationInDegrees, 'z', -180, 180).step(1).decimals(2).listen()
             .onFinishChange(onTransformFinishChange);
+        // --- AKHIR PERUBAHAN ---
 
+
+        // --- 3. KEMBALIKAN SCALE SEPERTI KODE ANDA ---
         const scaleFolder = folder.addFolder('Scale');
-        scaleFolder.add(obj.scale, 'x', 0.01).step(0.01).listen()
+        scaleFolder.add(obj.scale, 'x', 0.01).step(0.01).decimals(2).listen()
             .onFinishChange(onTransformFinishChange);
-        scaleFolder.add(obj.scale, 'y', 0.01).step(0.01).listen()
+        scaleFolder.add(obj.scale, 'y', 0.01).step(0.01).decimals(2).listen()
             .onFinishChange(onTransformFinishChange);
-        scaleFolder.add(obj.scale, 'z', 0.01).step(0.01).listen()
+        scaleFolder.add(obj.scale, 'z', 0.01).step(0.01).decimals(2).listen()
             .onFinishChange(onTransformFinishChange);
 
         return folder;
     }
+    // --- (***) AKHIR DARI FUNGSI YANG DIGANTI (***) ---
+
 
     _buildLightGUI(lightObject) {
         // Folder sekarang ditambahkan ke root GUI
