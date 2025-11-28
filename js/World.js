@@ -142,15 +142,42 @@ export class World {
     }
 
     // --- (3) MODIFIKASI: Cek flag 'ignoreNextClick' ---
+    // onCanvasClick(event) {
+    //     // --- TAMBAHAN ---
+    //     // Jika flag ini true, berarti 'mouseUp' dari gizmo baru saja terjadi.
+    //     // Abaikan 'click' ini dan reset flag-nya.
+    //     if (this.ignoreNextClick) {
+    //         this.ignoreNextClick = false;
+    //         return;
+    //     }
+    //     // --- AKHIR TAMBAHAN ---
+
+    //     if (this.transformControls.dragging || !this.stateManager || this.flyControls.enabled) {
+    //         return;
+    //     }
+
+    //     this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    //     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    //     this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    //     const intersects = this.raycaster.intersectObjects(this.state.allSelectableObjects, true); 
+
+    //     if (intersects.length > 0) {
+    //         let objectToSelect = intersects[0].object;
+    //         this.stateManager.setSelectedObject(objectToSelect);
+            
+    //     } else {
+    //         this.stateManager.setSelectedObject(null); // Deselect
+    //     }
+    // }
+
+    // js/World.js
+
     onCanvasClick(event) {
-        // --- TAMBAHAN ---
-        // Jika flag ini true, berarti 'mouseUp' dari gizmo baru saja terjadi.
-        // Abaikan 'click' ini dan reset flag-nya.
         if (this.ignoreNextClick) {
             this.ignoreNextClick = false;
             return;
         }
-        // --- AKHIR TAMBAHAN ---
 
         if (this.transformControls.dragging || !this.stateManager || this.flyControls.enabled) {
             return;
@@ -160,10 +187,20 @@ export class World {
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
+        // Cari objek yang kena klik
         const intersects = this.raycaster.intersectObjects(this.state.allSelectableObjects, true); 
 
         if (intersects.length > 0) {
             let objectToSelect = intersects[0].object;
+
+            // --- LOGIKA BARU: CARI INDUK TERTINGGI (GROUP) ---
+            // Kita telusuri ke atas sampai ketemu Group pembungkus yang kita buat di SceneSetup
+            // Berhenti jika parent-nya adalah Scene utama
+            while (objectToSelect.parent && objectToSelect.parent.type !== 'Scene') {
+                objectToSelect = objectToSelect.parent;
+            }
+            // --------------------------------------------------
+
             this.stateManager.setSelectedObject(objectToSelect);
             
         } else {

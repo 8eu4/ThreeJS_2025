@@ -142,22 +142,92 @@ export function _createLights(world, state) {
 // --- AKHIR Primitif & Lampu ---
 
 
+// js/SceneSetup.js
+
+// js/SceneSetup.js
+
+// js/SceneSetup.js
+
 export function _loadModels(world, state) {
     const gltfLoader = new GLTFLoader();
 
     const modelsToLoad = [
-        {
-            url: './Models/kitchen.glb',
-            position: new THREE.Vector3(0, 0, 0),
-            scale: new THREE.Vector3(1, 1, 1),
-            rotation: new THREE.Euler(0, 0, 0),
-        },
+        // --- 1. BEDROOM (PUSAT) ---
         {
             url: './Models/bedroom.glb',
             position: new THREE.Vector3(0, 0, 0),
             scale: new THREE.Vector3(100, 100, 100),
             rotation: new THREE.Euler(0, 0, 0),
-        }
+            fixOrigin: true, // Bangunan = Fix Origin
+            isMonster: false // Bukan Monster
+        },
+        // --- 2. KITCHEN ---
+        {
+            url: './Models/kitchen.glb',
+            position: new THREE.Vector3(700, 0, -400),
+            scale: new THREE.Vector3(1, 1, 1),
+            rotation: new THREE.Euler(0, 0, 0),
+            fixOrigin: true,
+            isMonster: false
+        },
+        // --- 3. CORRIDOR ---
+        {
+            url: './Models/horror_corridor_4.glb',
+            position: new THREE.Vector3(1700, 0, 400),
+            scale: new THREE.Vector3(170, 170, 170),
+            rotation: new THREE.Euler(0, -Math.PI / 2, 0),
+            fixOrigin: true,
+            isMonster: false
+        },
+        // --- 4. HANTU (ANIMASI) ---
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Corridor', 
+            position: new THREE.Vector3(-350, 0, -350),
+            scale: new THREE.Vector3(90, 90, 90),
+            rotation: new THREE.Euler(0, Math.PI / 2, 0),
+            
+            animName: 'Creature_armature|walk', 
+            visible: true,      
+            fixOrigin: false,   // Hantu = Jangan Fix Origin
+            isMonster: true     // <--- PENTING: TANDA BAHWA INI MONSTER
+        },
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Kitchen_Window', 
+            position: new THREE.Vector3(650, -50, -580),
+            scale: new THREE.Vector3(80, 80, 80),
+            rotation: new THREE.Euler(0, 0, 0),
+
+            animName: 'Creature_armature|roar',
+            visible: true,     // Sembunyi
+            fixOrigin: false,
+            isMonster: true     // <--- TANDA MONSTER
+        },
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Kitchen', 
+            position: new THREE.Vector3(650, 2, -350),
+            scale: new THREE.Vector3(80, 80, 80),
+            rotation: new THREE.Euler(0, Math.PI / 2, 0),
+
+            animName: 'Creature_armature|roar', 
+            visible: false,     // Sembunyi
+            fixOrigin: false,
+            isMonster: true     // <--- TANDA MONSTER
+        },
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Corridor_Chasing', 
+            position: new THREE.Vector3(2480, 20, 20),
+            scale: new THREE.Vector3(80, 80, 80),
+            rotation: new THREE.Euler(0, 0, 0),
+
+            animName: 'Creature_armature|crawl', 
+            visible: false,     // Sembunyi
+            fixOrigin: false,
+            isMonster: true     // <--- TANDA MONSTER
+        },
     ];
 
     modelsToLoad.forEach(cfg => {
@@ -165,70 +235,88 @@ export function _loadModels(world, state) {
             cfg.url,
             (gltf) => {
                 const model = gltf.scene;
-
-                // 1. Collapse hierarki (sesuai request)
-                collapseHierarchy(model);
-
-                // --- PERBAIKAN BUG SKALA ---
-                // 2. Terapkan skala config (misal 100x) ke 'model' DULU
-                model.scale.copy(cfg.scale);
-                // ---
-
                 const pivotGroup = new THREE.Group();
-                pivotGroup.name = cfg.url.split('/').pop().replace('.glb', '');
-
-                // 3. Hitung box & center dari model yang SUDAH DISKALA
-                const box = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
+                
+                // Gunakan nama khusus dari config jika ada, jika tidak pakai nama file
+                pivotGroup.name = cfg.name || cfg.url.split('/').pop().replace('.glb', '');
 
                 pivotGroup.add(model);
+                model.scale.copy(cfg.scale);
 
-                // 4. Offset 'model' dengan center yang sudah diskala
-                model.position.sub(center); // <-- Tetap, agar model terpusat di pivotnya
+                // --- 1. LOGIKA FIX ORIGIN (KHUSUS BANGUNAN) ---
+                if (cfg.fixOrigin) {
+                    model.updateMatrixWorld(true);
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
 
-                // 5. Set posisi 'pivotGroup' dengan center yang sudah diskala
-                pivotGroup.position.set(0, 0, 0);   // <-- PAKSA POSISI KE (0, 0, 0)
+                    model.position.x = -center.x;
+                    model.position.z = -center.z;
+                    model.position.y = -box.min.y;
+                }
+                
+                // --- 2. LOGIKA MONSTER TAGGING (BARU) ---
+                // Ini kuncinya agar Collision nanti bisa bedakan Hantu vs Tembok
+                if (cfg.isMonster) {
+                    pivotGroup.userData.isMonster = true;
+                    pivotGroup.userData.checkCollision = true; // Nanti dicek bersyarat (visible/invisible)
+                } else {
+                    // Kalau bangunan, selalu cek collision
+                    pivotGroup.userData.isMonster = false;
+                    pivotGroup.userData.checkCollision = true; 
+                }
+
+                // Apply Posisi & Rotasi
+                pivotGroup.position.copy(cfg.position);
+                pivotGroup.rotation.copy(cfg.rotation);
+
+                // Apply Visibilitas
+                if (cfg.visible === false) {
+                    pivotGroup.visible = false;
+                } else {
+                    pivotGroup.visible = true;
+                }
 
                 world.add(pivotGroup);
+
                 state.addObject(pivotGroup, {
                     isSelectable: true,
                     isDraggable: true
                 });
 
+                // Apply Animasi
                 if (gltf.animations && gltf.animations.length > 0) {
                     pivotGroup.animations = gltf.animations;
+
+                    if (!pivotGroup.mixer) {
+                        pivotGroup.mixer = new THREE.AnimationMixer(model);
+                        const targetAnim = cfg.animName || gltf.animations[0].name;
+                        const clip = gltf.animations.find(a => a.name === targetAnim);
+
+                        if (clip) {
+                            const action = pivotGroup.mixer.clipAction(clip);
+                            action.play();
+                            pivotGroup.currentAction = action;
+                            console.log(`[ANIMATION] ${pivotGroup.name} playing: ${targetAnim}`);
+                        } else {
+                            console.warn(`Animasi '${targetAnim}' tidak ditemukan pada ${pivotGroup.name}`);
+                        }
+                    }
                 }
 
                 model.traverse((node) => {
                     if (!node.name) {
-                        if (node.isMesh) {
-                            node.name = `${pivotGroup.name}_mesh_${node.uuid.substring(0, 4)}`;
-                        } else if (node.isGroup) {
-                            node.name = `${pivotGroup.name}_group_${node.uuid.substring(0, 4)}`;
-                        } else {
-                            node.name = `${pivotGroup.name}_node_${node.uuid.substring(0, 4)}`;
-                        }
+                        if (node.isMesh) node.name = `${pivotGroup.name}_mesh_${node.uuid.substring(0, 4)}`;
+                        else node.name = `${pivotGroup.name}_node_${node.uuid.substring(0, 4)}`;
                     }
-
-                    state.addObject(node, {
-                        isSelectable: true,
-                        isDraggable: true
-                    });
-
-                    // Jangan recenter 'model' (gltf.scene) itu sendiri
-                    if (node === model) {
-                        return;
-                    }
-
+                    state.addObject(node, { isSelectable: true, isDraggable: true });
                     if (node.isMesh) {
                         node.castShadow = true;
                         node.receiveShadow = true;
-                        recenterMeshOrigin(node);
-                    } else if (node.isGroup) {
-                        recenterOrigin(node);
                     }
                 });
-            }
+            },
+            undefined,
+            (error) => { console.error(`ERROR Loading ${cfg.url}:`, error); }
         );
     });
 }
