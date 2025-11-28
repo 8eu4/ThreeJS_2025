@@ -1,16 +1,18 @@
 // js/UIManager.js
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import * as THREE from 'three'; // Penting untuk konversi
+import * as THREE from 'three'; 
 import { MinMaxGUIHelper, ColorGUIHelper } from './helper.js';
 import { TransformCommand } from './Commands.js';
 
 export class UIManager {
-    constructor(world, state, history, saveManager) {
+    // TERIMA cameraManager DI SINI (Parameter ke-5)
+    constructor(world, state, history, saveManager, cameraManager) {
         this.world = world;
         this.state = state;
         this.stateManager = null;
         this.history = history;
         this.saveManager = saveManager;
+        this.cameraManager = cameraManager; // Simpan referensi
 
         //--- BUAT INPUT FILE UNTUK LOAD ---
         this.fileInput = document.createElement('input');
@@ -19,7 +21,6 @@ export class UIManager {
         this.fileInput.style.display = 'none';
         this.fileInput.addEventListener('change', (event) => this._handleFileLoad(event));
         document.body.appendChild(this.fileInput);
-
 
         this.gui = new GUI();
         this.hierarchyListEl = document.getElementById('hierarchy-list');
@@ -45,7 +46,7 @@ export class UIManager {
 
     _init() {
         this._buildCameraProjectionGUI();
-        this._buildCameraModeGUI();
+        this._buildCameraModeGUI(); // <-- Ini yang tadi error, sekarang sudah diperbaiki
         this._buildGizmoGUI();
         this._buildSaveLoadGUI();
 
@@ -54,15 +55,19 @@ export class UIManager {
         this.saveLoadFolder.open();
     }
 
+    // ... (Fungsi _setupTransformControlsListeners, setStateManager, _buildSaveLoadGUI, _handleFileLoad, _createCollapsibleSection, buildHierarchyPanel, _buildHierarchyNode, updateHierarchyHighlight, updateTransformControls, hideActiveGUIs, showGUIFor, removeGUIFromCache SAMA PERSIS SEPERTI SEBELUMNYA. BIARKAN SAJA.) ...
+    
+    // AGAR TIDAK KEPANJANGAN, SAYA HANYA TULIS FUNGSI YANG BERUBAH DI BAWAH INI.
+    // TAPI JIKA ANDA COPY PASTE, PASTIKAN FUNGSI LAINNYA TETAP ADA.
+    // SARAN SAYA: TIMPA SAJA FILE LAMA DENGAN KODE LENGKAP DI BAWAH INI AGAR AMAN.
+    
     _setupTransformControlsListeners() {
-        // Saat user mulai men-drag (menekan mouse)
         this.world.transformControls.addEventListener('mouseDown', (event) => {
-            // Nonaktifkan fly controls agar tidak bentrok
-            if (this.world.flyControls) {
-                this.world.flyControls.enabled = false;
+            // Nonaktifkan orbit controls via manager
+            if (this.cameraManager) {
+                this.cameraManager.orbitControls.enabled = false;
             }
 
-            // Simpan state LAMA dari objek yang dipilih
             const object = this.world.transformControls.object;
             if (object) {
                 this._tempOldTransform = {
@@ -73,65 +78,52 @@ export class UIManager {
             }
         });
 
-        // Saat user selesai men-drag (melepas mouse)
         this.world.transformControls.addEventListener('mouseUp', (event) => {
-
             this.world.ignoreNextClick = true;
-
-            const object = this.world.transformControls.object;
-            if (!this._tempOldTransform || !object) {
-                return;
+            
+            // Aktifkan lagi orbit controls via manager (kalau mode Orbit)
+            if (this.cameraManager && this.cameraManager.activeMode === 'ORBIT') {
+                this.cameraManager.orbitControls.enabled = true;
             }
 
-            // Dapatkan state BARU
+            const object = this.world.transformControls.object;
+            if (!this._tempOldTransform || !object) return;
+
             const newTransform = {
                 position: object.position.clone(),
                 rotation: object.rotation.clone(),
                 scale: object.scale.clone()
             };
 
-            // ---- INTI LOGIKA UNDO ----
             if (!this._tempOldTransform.position.equals(newTransform.position) ||
                 !this._tempOldTransform.rotation.equals(newTransform.rotation) ||
                 !this._tempOldTransform.scale.equals(newTransform.scale)) {
                 const command = new TransformCommand(object, this._tempOldTransform, newTransform);
                 this.history.execute(command);
             }
-            // -------------------------
-
             this._tempOldTransform = null;
         });
-
     }
 
-    setStateManager(manager) {
-        this.stateManager = manager;
-    }
-
+    setStateManager(manager) { this.stateManager = manager; }
 
     _buildSaveLoadGUI() {
         const saveLoadSettings = {
-            saveScene: () => {
-                this.saveManager.saveScene();
-            },
-            loadScene: () => {
-                this.fileInput.click(); // Panggil input file tersembunyi
-            }
+            saveScene: () => { this.saveManager.saveScene(); },
+            loadScene: () => { this.fileInput.click(); }
         };
-
         this.saveLoadFolder.add(saveLoadSettings, 'saveScene').name('Save Scene');
         this.saveLoadFolder.add(saveLoadSettings, 'loadScene').name('Load Scene');
     }
+
     _handleFileLoad(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = (e) => {
             const jsonString = e.target.result;
             this.saveManager.loadScene(jsonString);
         };
-
         reader.readAsText(file);
         event.target.value = null;
     }
@@ -139,9 +131,7 @@ export class UIManager {
     _createCollapsibleSection(parentElement, title, startOpen = true) {
         const sectionItem = document.createElement('div');
         sectionItem.className = 'hierarchy-item';
-        if (startOpen) {
-            sectionItem.classList.add('open');
-        }
+        if (startOpen) sectionItem.classList.add('open');
 
         const content = document.createElement('div');
         content.className = 'hierarchy-item-content';
@@ -174,23 +164,27 @@ export class UIManager {
             sectionItem.classList.toggle('open');
             toggle.textContent = sectionItem.classList.contains('open') ? '▼' : '►';
         });
-
         return childContainer;
     }
 
     buildHierarchyPanel() {
-        this.hierarchyListEl.innerHTML = ""; // Clear
-
+        this.hierarchyListEl.innerHTML = "";
         const lightsContainer = this._createCollapsibleSection(this.hierarchyListEl, "Lights", true);
         const objectsContainer = this._createCollapsibleSection(this.hierarchyListEl, "Objects", true);
 
         this.world.scene.children.forEach(child => {
+            // Skip CameraRig parts from hierarchy
+            if (child.name === "CameraRig_PlayerBody") return;
+
             if (child.isLight) {
                 this._buildHierarchyNode(child, lightsContainer, 0);
             } else {
                 const isHelper = child.type.endsWith('Helper');
                 const isGround = child.name === "Ground Plane";
-                if (!isHelper && !isGround) {
+                // Skip Gizmo Controls
+                const isGizmo = child.type === 'TransformControls';
+                
+                if (!isHelper && !isGround && !isGizmo) {
                     this._buildHierarchyNode(child, objectsContainer, 0);
                 }
             }
@@ -233,11 +227,9 @@ export class UIManager {
         if (hasChildren) {
             childContainer = document.createElement('div');
             childContainer.className = 'hierarchy-children';
-
             object.children.forEach(child => {
                 this._buildHierarchyNode(child, childContainer, depth + 1);
             });
-
             if (childContainer.children.length > 0) {
                 hasValidChildren = true;
                 parentElement.appendChild(childContainer);
@@ -246,7 +238,6 @@ export class UIManager {
 
         if (hasValidChildren) {
             toggle.textContent = '►';
-
             toggle.addEventListener('click', (e) => {
                 e.stopPropagation();
                 item.classList.toggle('open');
@@ -266,10 +257,7 @@ export class UIManager {
 
     updateHierarchyHighlight() {
         const items = this.hierarchyListEl.querySelectorAll('.hierarchy-item-content');
-
-        items.forEach(itemContent => {
-            itemContent.classList.remove('selected');
-        });
+        items.forEach(itemContent => { itemContent.classList.remove('selected'); });
 
         if (this.state.selectedObject) {
             const selectedUUID = this.state.selectedObject.uuid;
@@ -277,15 +265,11 @@ export class UIManager {
 
             if (itemToSelect) {
                 itemToSelect.classList.add('selected');
-
                 let currentItem = itemToSelect.closest('.hierarchy-item');
                 if (!currentItem) return;
-
                 let parentContainer = currentItem.closest('.hierarchy-children');
-
                 while (parentContainer) {
                     let parentItem = parentContainer.previousElementSibling;
-
                     if (parentItem && parentItem.classList.contains('hierarchy-item') && !parentItem.classList.contains('open')) {
                         parentItem.classList.add('open');
                         const toggle = parentItem.querySelector('.hierarchy-item-content .hierarchy-toggle');
@@ -306,18 +290,9 @@ export class UIManager {
     }
 
     hideActiveGUIs() {
-        if (this.activeLightGUI) {
-            this.activeLightGUI.destroy();
-            this.activeLightGUI = null;
-        }
-        if (this.activeAnimationGUI) {
-            this.activeAnimationGUI.destroy();
-            this.activeAnimationGUI = null;
-        }
-        if (this.activeTransformGUI) {
-            this.activeTransformGUI.destroy();
-            this.activeTransformGUI = null;
-        }
+        if (this.activeLightGUI) { this.activeLightGUI.destroy(); this.activeLightGUI = null; }
+        if (this.activeAnimationGUI) { this.activeAnimationGUI.destroy(); this.activeAnimationGUI = null; }
+        if (this.activeTransformGUI) { this.activeTransformGUI.destroy(); this.activeTransformGUI = null; }
     }
 
     showGUIFor(obj) {
@@ -326,7 +301,6 @@ export class UIManager {
             folder.open();
             this.activeTransformGUI = folder;
         }
-
         if (obj.isLight) {
             const folder = this._buildLightGUI(obj);
             folder.open();
@@ -346,8 +320,6 @@ export class UIManager {
         this.hideActiveGUIs();
     }
 
-    // --- Metode Pembuatan GUI Internal (Tidak Berubah) ---
-
     _buildCameraProjectionGUI() {
         const cam = this.world.camera;
         const updateCamera = () => cam.updateProjectionMatrix();
@@ -355,49 +327,53 @@ export class UIManager {
         const minMaxGUIHelper = new MinMaxGUIHelper(cam, 'near', 'far', 0.1);
         this.cameraFolder.add(minMaxGUIHelper, 'min', 0.01, 50, 0.01).name('near').onChange(updateCamera);
         this.cameraFolder.add(minMaxGUIHelper, 'max', 0.1, 20000, 0.1).name('far').onChange(updateCamera);
-        this.cameraFolder.add(cam, 'zoom', 0.1, 10, 0.1).name('Zoom').onChange(updateCamera);
+        // this.cameraFolder.add(cam, 'zoom', 0.1, 10, 0.1).name('Zoom').onChange(updateCamera);
     }
+
+    // --- (***) FUNGSI INI YANG DI-REVISI (***) ---
 
     _buildCameraModeGUI() {
         const cam = this.world.camera;
-        const orbit = this.world.orbitControls;
-        const fpc = this.world.flyControls;
-        const gizmo = this.world.transformControls;
-        const folder = this.cameraFolder.addFolder('Camera Controls');
-        const fpSettingsFolder = folder.addFolder('First Person Settings');
+        const folder = this.cameraFolder.addFolder('Mode Settings');
         const rollFolder = folder.addFolder('Camera Roll');
+
         const settings = {
-            mode: 'Orbit',
+            mode: 'Orbit', // Default
             'Eyes Closed': false,
             resetRoll: () => { cam.rotation.z = 0; }
         };
-        folder.add(settings, 'mode', ['Orbit', 'First Person']).name('Mode')
+
+        // Switcher Mode
+        folder.add(settings, 'mode', ['Orbit', 'First Person'])
+            .name('Control Mode')
             .onChange((mode) => {
                 if (mode === 'First Person') {
-                    fpc.enabled = true;
-                    orbit.enabled = false;
-                    gizmo.enabled = false;
-                    fpSettingsFolder.open();
-                    rollFolder.open();
-                    if (this.stateManager) {
-                        this.stateManager.setSelectedObject(null);
-                    }
+                    this.cameraManager.setMode('FPS');
+                    
+                    this.world.transformControls.visible = false;
+                    this.world.transformControls.enabled = false;
+                    
+                    if (this.stateManager) this.stateManager.setSelectedObject(null);
+
                 } else {
-                    orbit.enabled = true;
-                    gizmo.enabled = true;
-                    fpc.enabled = false;
-                    fpSettingsFolder.close();
+                    this.cameraManager.setMode('ORBIT');
+                    
+                    this.world.transformControls.visible = true;
+                    this.world.transformControls.enabled = true;
+                    
                     settings.resetRoll();
-                    rollFolder.close();
                 }
             });
-        fpSettingsFolder.add(fpc, 'movementSpeed', 1, 50).name('Move Speed');
-        fpSettingsFolder.add(fpc, 'baseLookSpeed', 0.01, 0.5).name('Look Sensitivity');
-        fpSettingsFolder.add(fpc, 'panSpeed', 0.1, 5.0).name('Pan Speed');
-        fpSettingsFolder.close();
+
+        // --- UPDATE VARIABEL DI SINI ---
+        // Hubungkan ke variabel baru di CameraManager.js
+        folder.add(this.cameraManager, 'fpsMoveSpeed', 100, 3000).name('FPS Speed');
+        folder.add(this.cameraManager, 'orbitMoveSpeed', 100, 2000).name('Orbit Pan Speed');
+        // -------------------------------
+
         rollFolder.add(cam.rotation, 'z', -Math.PI, Math.PI).name('Roll (Z-axis)').listen();
         rollFolder.add(settings, 'resetRoll').name('Reset Roll');
-        rollFolder.close();
+        
         folder.add(settings, 'Eyes Closed').onChange((isClosed) => {
             if (isClosed) {
                 document.body.classList.add('eyes-closed');
@@ -405,8 +381,10 @@ export class UIManager {
                 document.body.classList.remove('eyes-closed');
             }
         });
+
         folder.open();
     }
+    // --- AKHIR REVISI ---
 
     _buildGizmoGUI() {
         const gizmoModes = { Move: 'translate', Rotate: 'rotate', Scale: 'scale' };
@@ -416,10 +394,7 @@ export class UIManager {
         this.gizmoFolder.add(this.world.transformControls, 'showZ').name('Show Z');
     }
 
-
-    // --- (***) FUNGSI YANG DIPERBAIKI (***) ---
     _buildTransformGUI(obj) {
-        // Folder sekarang ditambahkan ke root GUI
         const folder = this.gui.addFolder(`${obj.name} (Transform)`);
 
         let oldTransform = {
@@ -435,7 +410,6 @@ export class UIManager {
                 scale: obj.scale.clone()
             };
 
-            // Hanya eksekusi jika ada perubahan
             if (!oldTransform.position.equals(newTransform.position) ||
                 !oldTransform.rotation.equals(newTransform.rotation) ||
                 !oldTransform.scale.equals(newTransform.scale)) {
@@ -455,34 +429,20 @@ export class UIManager {
         };
 
         const rotFolder = folder.addFolder('Rotation');
-        // --- GANTI -360, 360 MENJADI -180, 180 ---
-        rotFolder.add(rotationInDegrees, 'x', -180, 180).step(1).decimals(2).listen()
-            .onFinishChange(onTransformFinishChange);
-        rotFolder.add(rotationInDegrees, 'y', -180, 180).step(1).decimals(2).listen()
-            .onFinishChange(onTransformFinishChange);
-        rotFolder.add(rotationInDegrees, 'z', -180, 180).step(1).decimals(2).listen()
-            .onFinishChange(onTransformFinishChange);
-        // --- AKHIR PERUBAHAN ---
+        rotFolder.add(rotationInDegrees, 'x', -180, 180).step(1).decimals(2).listen().onFinishChange(onTransformFinishChange);
+        rotFolder.add(rotationInDegrees, 'y', -180, 180).step(1).decimals(2).listen().onFinishChange(onTransformFinishChange);
+        rotFolder.add(rotationInDegrees, 'z', -180, 180).step(1).decimals(2).listen().onFinishChange(onTransformFinishChange);
 
-
-        // --- 3. KEMBALIKAN SCALE SEPERTI KODE ANDA ---
         const scaleFolder = folder.addFolder('Scale');
-        scaleFolder.add(obj.scale, 'x', 0.01).step(0.01).decimals(2).listen()
-            .onFinishChange(onTransformFinishChange);
-        scaleFolder.add(obj.scale, 'y', 0.01).step(0.01).decimals(2).listen()
-            .onFinishChange(onTransformFinishChange);
-        scaleFolder.add(obj.scale, 'z', 0.01).step(0.01).decimals(2).listen()
-            .onFinishChange(onTransformFinishChange);
+        scaleFolder.add(obj.scale, 'x', 0.01).step(0.01).decimals(2).listen().onFinishChange(onTransformFinishChange);
+        scaleFolder.add(obj.scale, 'y', 0.01).step(0.01).decimals(2).listen().onFinishChange(onTransformFinishChange);
+        scaleFolder.add(obj.scale, 'z', 0.01).step(0.01).decimals(2).listen().onFinishChange(onTransformFinishChange);
 
         return folder;
     }
-    // --- (***) AKHIR DARI FUNGSI YANG DIGANTI (***) ---
-
 
     _buildLightGUI(lightObject) {
-        // Folder sekarang ditambahkan ke root GUI
         const folder = this.gui.addFolder(`${lightObject.name} Properties`);
-
         const isFloatLight = lightObject.isAmbientLight || lightObject.isHemisphereLight;
         const intensityStep = isFloatLight ? 0.01 : 1;
         const intensityDefaultMax = isFloatLight ? 2 : 200;
@@ -494,18 +454,12 @@ export class UIManager {
     }
 
     _buildAnimationGUI(model) {
-        // Folder sekarang ditambahkan ke root GUI
         const folder = this.gui.addFolder(`${model.name} Animations`);
-
         let targetObject = model;
         const sceneChild = model.children.find(child => child.isScene);
-        if (sceneChild) {
-            targetObject = sceneChild;
-        }
+        if (sceneChild) targetObject = sceneChild;
 
-        if (!model.mixer) {
-            model.mixer = new THREE.AnimationMixer(targetObject);
-        }
+        if (!model.mixer) model.mixer = new THREE.AnimationMixer(targetObject);
 
         let lastAction = null;
         const helper = { currentAnimation: 'None' };
@@ -530,7 +484,6 @@ export class UIManager {
             newAction.reset().fadeIn(fadeDuration).play();
             lastAction = newAction;
         });
-
         return folder;
     }
 }

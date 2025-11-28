@@ -4,29 +4,31 @@ import { UIManager } from './UIManager.js';
 import { StateManager } from './StateManager.js';
 import { loadInitialScene } from './SceneSetup.js';
 import { HistoryManager } from './HistoryManager.js';
-import { SaveManager } from './SaveManager.js'; // <-- (1) IMPORT BARU
+import { SaveManager } from './SaveManager.js';
+import { CameraManager } from './CameraManager.js'; // <--- IMPORT PENTING
 
 // 1. Inisialisasi komponen inti
 const history = new HistoryManager(); 
 const state = new StateManager(history); 
 const world = new World(document.body, state);
-const saveManager = new SaveManager(state, history); // <-- (2) BUAT INSTANCE
-const ui = new UIManager(world, state, history, saveManager); // <-- (3) BERIKAN KE UI
+const saveManager = new SaveManager(state, history);
+const cameraManager = new CameraManager(world, state);
+const ui = new UIManager(world, state, history, saveManager, cameraManager);
 
-// 2. Berikan referensi (Dependency Injection)
+// 3. Berikan referensi (Dependency Injection)
 state.setUIManager(ui);
 world.setStateManager(state);
 ui.setStateManager(state);
 
-// 2. Berikan referensi (Dependency Injection)
-state.setUIManager(ui);
-world.setStateManager(state);
-ui.setStateManager(state);
+// --- SAMBUNGKAN CAMERA MANAGER KE WORLD ---
+// Ini penting agar fungsi update() di CameraManager dipanggil setiap frame
+world.setCameraManager(cameraManager); 
+// ------------------------------------------
 
-// 3. Muat objek-objek awal ke dalam scene
+// 4. Muat objek-objek awal ke dalam scene
 loadInitialScene(world, state);
 
-// 4. Set up event listener global
+// 5. Set up event listener global
 window.addEventListener('keydown', (event) => {
     // Cek agar tidak menghapus jika sedang mengetik di input GUI
     const activeEl = document.activeElement;
@@ -34,10 +36,11 @@ window.addEventListener('keydown', (event) => {
         return;
     }
 
+    // DELETE OBJECT
     if (event.key === 'Delete' || event.key === 'Backspace') {
-        // Cek flyControls
-        if (world.flyControls.enabled) {
-            return;
+        // PERBAIKAN: Cek mode CameraManager, bukan flyControls (karena sudah dihapus)
+        if (cameraManager.activeMode === 'FPS') {
+            return; // Jangan hapus objek saat sedang main (FPS Mode)
         }
 
         state.deleteSelectedObject();
@@ -46,32 +49,23 @@ window.addEventListener('keydown', (event) => {
     // REDO (CTRL + Y atau CTRL + SHIFT + Z)
     if ((event.ctrlKey && event.key.toLowerCase() === 'y') ||
         (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'z')) {
-        event.preventDefault(); // Mencegah redo default browser
+        event.preventDefault(); 
         history.redo();
-        return; // Hentikan eksekusi lebih lanjut
+        return;
     }
 
     // UNDO (CTRL + Z)
     else if (event.ctrlKey && event.key.toLowerCase() === 'z') {
-        event.preventDefault(); // Mencegah undo default browser
+        event.preventDefault(); 
         history.undo();
-        
-        console.log("--- DEBUG: Ctrl+Z Terdeteksi! ---");
-        console.log("Isi Undo Stack:", history.undoStack);
-
-        return; // Hentikan eksekusi lebih lanjut
+        return; 
     }
 });
 
-// --- TAMBAHAN BARU: Listener Deseleksi Global ---
+// Listener Deseleksi Global
 window.addEventListener('click', (event) => {
-    // Cek apakah klik terjadi PADA canvas
     const isCanvasClick = event.target === world.renderer.domElement;
-
-    // Cek apakah klik terjadi DI DALAM panel lil-gui
     const isGuiClick = event.target.closest('.lil-gui');
-
-    // Cek apakah klik terjadi DI DALAM panel hierarki
     const isHierarchyClick = event.target.closest('#hierarchy-list');
 
     // Jika klik terjadi di luar ketiga area interaktif tersebut, deselect.
@@ -80,13 +74,7 @@ window.addEventListener('click', (event) => {
             state.setSelectedObject(null);
         }
     }
+}, false); 
 
-    // Jika klik di canvas, biarkan 'onCanvasClick' di World.js yang menangani.
-    // Jika klik di GUI atau Hierarki, biarkan listener mereka yang menangani.
-
-}, false); // 'false' (atau capture=false) memastikan ini berjalan setelah listener lain
-// --- AKHIR TAMBAHAN ---
-
-
-// 5. Mulai aplikasi
+// 6. Mulai aplikasi
 world.start();
