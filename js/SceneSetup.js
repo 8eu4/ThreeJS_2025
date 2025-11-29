@@ -195,7 +195,7 @@ export function _loadModels(world, state) {
         {
             url: './Models/nightmare_creature_1.glb',
             name: 'Ghost_Kitchen_Window', 
-            position: new THREE.Vector3(650, -50, -580),
+            position: new THREE.Vector3(650, 0, -580),
             scale: new THREE.Vector3(80, 80, 80),
             rotation: new THREE.Euler(0, 0, 0),
 
@@ -308,11 +308,18 @@ export function _loadModels(world, state) {
                         if (node.isMesh) node.name = `${pivotGroup.name}_mesh_${node.uuid.substring(0, 4)}`;
                         else node.name = `${pivotGroup.name}_node_${node.uuid.substring(0, 4)}`;
                     }
+                    
                     state.addObject(node, { isSelectable: true, isDraggable: true });
+                    
                     if (node.isMesh) {
                         node.castShadow = true;
                         node.receiveShadow = true;
-                    }
+
+                        // --- (1) AKTIFKAN INI UNTUK HANTU ---
+                        // Agar hantu tidak kedip/hilang saat jarak dekat
+                        // Sangat penting untuk collision yang konsisten!
+                        node.frustumCulled = false; 
+                    } 
                 });
             },
             undefined,
