@@ -6,6 +6,8 @@ import { loadInitialScene } from './SceneSetup.js';
 import { HistoryManager } from './HistoryManager.js';
 import { SaveManager } from './SaveManager.js';
 import { CameraManager } from './CameraManager.js'; // <--- IMPORT PENTING
+import { LightingManager } from './LightingManager.js'; // <--- 1. IMPORT BARU
+import { StoryManager } from './StoryManager.js'; // Import
 
 // 1. Inisialisasi komponen inti
 const history = new HistoryManager(); 
@@ -13,7 +15,10 @@ const state = new StateManager(history);
 const world = new World(document.body, state);
 const saveManager = new SaveManager(state, history);
 const cameraManager = new CameraManager(world, state);
+// Setup Lighting SETELAH Camera (karena senter butuh kamera)
+const lightingManager = new LightingManager(world, cameraManager); // <--- 2. INISIALISASI
 const ui = new UIManager(world, state, history, saveManager, cameraManager);
+const storyManager = new StoryManager(world, cameraManager, lightingManager, state);
 
 // 3. Berikan referensi (Dependency Injection)
 state.setUIManager(ui);
@@ -24,6 +29,7 @@ ui.setStateManager(state);
 // Ini penting agar fungsi update() di CameraManager dipanggil setiap frame
 world.setCameraManager(cameraManager); 
 // ------------------------------------------
+world.setLightingManager(lightingManager);
 
 // 4. Muat objek-objek awal ke dalam scene
 loadInitialScene(world, state);
@@ -75,6 +81,9 @@ window.addEventListener('click', (event) => {
         }
     }
 }, false); 
+
+window.storyManager = storyManager; 
+console.log("Ketik 'storyManager.startOpeningScene()' di console untuk mulai cerita.");
 
 // 6. Mulai aplikasi
 world.start();

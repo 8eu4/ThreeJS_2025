@@ -95,12 +95,19 @@ export class World {
     setCameraManager(manager) {
         this.cameraManager = manager;
     }
+    setLightingManager(manager) {
+        this.lightingManager = manager;
+    }
 
     animate() {
         const delta = this.clock.getDelta();
 
         if (this.cameraManager) {
             this.cameraManager.update(delta);
+        }
+
+        if (this.lightingManager) {
+            this.lightingManager.update(delta);
         }
 
         // ANIMASI (Mixer)

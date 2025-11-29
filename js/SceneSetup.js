@@ -4,10 +4,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export function loadInitialScene(world, state) {
     _createGround(world);
-    _createPrimitives(world, state);
-    _createLights(world, state);
+    // _createPrimitives(world, state);
+    // _createLights(world, state);
     _loadModels(world, state);
 }
+
 
 // --- FUNGSI RECENTER (TIDAK BERUBAH) ---
 function recenterOrigin(object) {
@@ -96,49 +97,7 @@ export function _createPrimitives(world, state) {
     world.add(boxMesh);
     state.addObject(boxMesh, { isSelectable: true, isDraggable: true });
 }
-export function _createLights(world, state) {
-    const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.1);
-    ambientLight.name = "Ambient Light";
-    world.add(ambientLight);
-    state.addObject(ambientLight, { isSelectable: true });
-    recenterOrigin(ambientLight);
-    const hemiLight = new THREE.HemisphereLight(0xB1E1FF, 0xB97A20, 0.2);
-    hemiLight.name = "Hemisphere Light";
-    world.add(hemiLight);
-    state.addObject(hemiLight, { isSelectable: true });
-    recenterOrigin(hemiLight);
-    world.add(new THREE.HemisphereLightHelper(hemiLight, 5));
-    const dirLight = new THREE.DirectionalLight(0xFFFFFF, 1);
-    dirLight.position.set(0, 20, 10);
-    dirLight.castShadow = true;
-    dirLight.name = "Directional Light";
-    dirLight.target.name = "Directional Target";
-    world.add(dirLight);
-    world.add(dirLight.target);
-    state.addObject(dirLight, { isSelectable: true, isDraggable: true });
-    state.addObject(dirLight.target, { isSelectable: true, isDraggable: true });
-    recenterOrigin(dirLight);
-    world.add(new THREE.DirectionalLightHelper(dirLight, 5));
-    const pointLight = new THREE.PointLight(0xFFFF00, 150, 50);
-    pointLight.position.set(-10, 10, 10);
-    pointLight.castShadow = true;
-    pointLight.name = "Point Light";
-    world.add(pointLight);
-    state.addObject(pointLight, { isSelectable: true, isDraggable: true });
-    recenterOrigin(pointLight);
-    world.add(new THREE.PointLightHelper(pointLight, 2));
-    const spotLight = new THREE.SpotLight(0xFF0000, 150, 80, THREE.MathUtils.degToRad(35), 0.1);
-    spotLight.position.set(-20, 20, 0);
-    spotLight.castShadow = true;
-    spotLight.name = "Spot Light";
-    spotLight.target.name = "Spot Light Target";
-    world.add(spotLight);
-    world.add(spotLight.target);
-    state.addObject(spotLight, { isSelectable: true, isDraggable: true });
-    state.addObject(spotLight.target, { isSelectable: true, isDraggable: true });
-    recenterOrigin(spotLight);
-    world.add(new THREE.SpotLightHelper(spotLight));
-}
+
 // --- AKHIR Primitif & Lampu ---
 
 

@@ -106,6 +106,13 @@ export class CameraManager {
                         this.canJump = false;
                     }
                     break;
+
+                case 'KeyF':
+                    // Panggil fungsi toggle di LightingManager lewat World
+                    if (this.world.lightingManager) {
+                        this.world.lightingManager.toggleFlashlight();
+                    }
+                    break;
             }
         };
 
@@ -171,6 +178,9 @@ export class CameraManager {
         } else if (mode === 'ORBIT') {
             this.activeMode = 'ORBIT';
             this.fpsControls.unlock();
+
+            if (document.activeElement) document.activeElement.blur();
+            document.body.focus();
 
             const globalPos = new THREE.Vector3();
             const globalQuat = new THREE.Quaternion();
