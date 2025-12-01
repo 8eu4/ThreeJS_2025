@@ -132,7 +132,7 @@ export function _loadModels(world, state) {
         // --- 3. CORRIDOR ---
         {
             url: './Models/horror_corridor_4.glb',
-            position: new THREE.Vector3(1700, 0, 400),
+            position: new THREE.Vector3(1700, 0, 500),
             scale: new THREE.Vector3(170, 170, 170),
             rotation: new THREE.Euler(0, -Math.PI / 2, 0),
             fixOrigin: true,
@@ -147,7 +147,7 @@ export function _loadModels(world, state) {
             rotation: new THREE.Euler(0, Math.PI / 2, 0),
             
             animName: 'Creature_armature|walk', 
-            visible: true,      
+            visible: false,      
             fixOrigin: false,   // Hantu = Jangan Fix Origin
             isMonster: true     // <--- PENTING: TANDA BAHWA INI MONSTER
         },
@@ -273,11 +273,20 @@ export function _loadModels(world, state) {
                     if (node.isMesh) {
                         node.castShadow = true;
                         node.receiveShadow = true;
-
-                        // --- (1) AKTIFKAN INI UNTUK HANTU ---
-                        // Agar hantu tidak kedip/hilang saat jarak dekat
-                        // Sangat penting untuk collision yang konsisten!
                         node.frustumCulled = false; 
+
+                        // --- [2] GENERATE BVH (HANYA UNTUK ENVIRONMENT) ---
+                        // Jika ini BUKAN monster (berarti dinding/lantai/kasur),
+                        // kita buatkan struktur data BVH agar raycaster cepat.
+                        
+                        if (!cfg.isMonster) {
+                            // Cek apakah geometry valid
+                            if (node.geometry) {
+                                // Perintah membuat index. Ini agak berat di awal (loading),
+                                // tapi membuat game super ringan setelahnya.
+                                node.geometry.computeBoundsTree();
+                            }
+                        }
                     } 
                 });
             },

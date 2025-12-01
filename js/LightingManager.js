@@ -17,12 +17,12 @@ export class LightingManager {
     _setupGlobalLights() {
         // 1. Ambient Light (Atmosfer Dasar)
         // MODE HORROR (Gelap):
-        const ambientColor = 0x050510; // Biru Tua Gelap
-        const ambientIntensity = 0.5;
+        // const ambientColor = 0x050510; // Biru Tua Gelap
+        // const ambientIntensity = 0.5;
 
         // MODE DEVELOPMENT (Terang Benderang - Pakai ini kalau mau ngedit):
-        // const ambientColor = 0xffffff; // Putih
-        // const ambientIntensity = 1.0;
+        const ambientColor = 0xffffff; // Putih
+        const ambientIntensity = 1.0;
 
         const ambient = new THREE.AmbientLight(ambientColor, ambientIntensity);
         this.scene.add(ambient);
@@ -170,21 +170,21 @@ export class LightingManager {
         );
         this._createRoomLight(
             'light_corridor_1',          // lampu lorong panjang persis depan pintu keluar dapur
-            new THREE.Vector3(955, 190, -410),
+            new THREE.Vector3(955, 190, -305),
             0xffaa00,                 // Warna
             2000,                      // Intensitas
             800                       // Jarak Pendar (Distance)
         );
         this._createRoomLight(
             'light_corridor_2',          // lampu lorong panjang tikungan setelah dapur
-            new THREE.Vector3(1025, 180, 20),
+            new THREE.Vector3(1025, 180, 120),
             0xffaa00,                 // Warna
             2000,                      // Intensitas
             800                       // Jarak Pendar (Distance)
         );
         this._createRoomLight(
             'light_corridor_3',          // lampu lorong panjang tikungan setelah dapur
-            new THREE.Vector3(1280, 180, -128),
+            new THREE.Vector3(1280, 180, -25),
             0xffaa00,                 // Warna
             2000,                      // Intensitas
             800                       // Jarak Pendar (Distance)

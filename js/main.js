@@ -8,6 +8,13 @@ import { SaveManager } from './SaveManager.js';
 import { CameraManager } from './CameraManager.js'; // <--- IMPORT PENTING
 import { LightingManager } from './LightingManager.js'; // <--- 1. IMPORT BARU
 import { StoryManager } from './StoryManager.js'; // Import
+import * as THREE from 'three'; // Pastikan import THREE ada
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+
+
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 // 1. Inisialisasi komponen inti
 const history = new HistoryManager(); 

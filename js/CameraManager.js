@@ -5,6 +5,16 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 
 export class CameraManager {
     constructor(world, state) {
+        this.tempVec1 = new THREE.Vector3(); // Wadah vektor umum 1
+        this.tempVec2 = new THREE.Vector3(); // Wadah vektor umum 2
+        this.tempRayOrigin = new THREE.Vector3(); // Wadah titik asal laser
+
+        // Variabel untuk prediksi posisi (Safety Bubble)
+        this.tempPredictionStep = new THREE.Vector3();
+        this.tempNextPos = new THREE.Vector3();
+
+        this.showDebugArrow = false; // Set 'true' jika ingin melihat panah kuning lagi
+
         this.world = world;
         this.state = state;
         this.camera = world.camera;
@@ -13,8 +23,8 @@ export class CameraManager {
 
         // --- KONFIGURASI SKALA ---
         this.playerHeight = 160.0;
-        this.orbitMoveSpeed = 400.0;
-        this.fpsMoveSpeed = 400.0;
+        this.orbitMoveSpeed = 100.0;
+        this.fpsMoveSpeed = 100.0;
         this.runMultiplier = 2.0;
         this.gravity = 4000.0;
         this.jumpForce = 1500.0;
@@ -48,6 +58,7 @@ export class CameraManager {
 
         // --- PHYSICS VARS ---
         this.velocity = new THREE.Vector3();
+        this.currentMoveVelocity = new THREE.Vector3(0, 0, 0); // Velocity Horizontal (X/Z)
 
         // Input Flags
         this.moveForward = false;
@@ -202,115 +213,131 @@ export class CameraManager {
             this.orbitControls.update();
         }
     }
+
     _checkWallCollision(directionVec) {
-        // --- STEP 0: FILTER OBJEK (OPTIMASI PERFORMA) ---
-        // Kita hanya ingin menembak laser ke objek yang:
-        // 1. VISIBLE (Terlihat)
-        // 2. Atau TEMBOK (checkCollision = true)
-        // Ini mencegah laser menghitung tabrakan dengan 'hantu invisible' yang bikin berat.
+        // --- STEP 0: FILTER DIHAPUS (OPTIMASI) ---
+        // Kita tidak lagi memfilter array objek setiap frame.
 
-        const activeObstacles = this.state.allSelectableObjects.filter(obj => {
-            // Cek visibility diri sendiri
-            if (obj.visible === false) return false;
+        // --- TAHAP 1: SAFETY BUBBLE (OPTIMIZED) ---
+        // Gunakan 'copy' dan 'add' ke variabel temp, BUKAN clone()
 
-            // Cek visibility bapaknya (karena Mesh hantu terlihat, tapi Group-nya invisible)
-            // Kita cek parents sampai ketemu Scene
-            let parent = obj.parent;
-            while (parent && parent.type !== 'Scene') {
-                if (parent.visible === false) return false;
-                parent = parent.parent;
-            }
+        const monsterRadiusSq = 14400.0; // 120^2 (Hitung manual biar hemat CPU)
 
-            return true;
-        });
+        // Hitung posisi masa depan tanpa bikin objek baru (new Vector3)
+        this.tempPredictionStep.copy(directionVec).multiplyScalar(10.0);
+        this.tempNextPos.copy(this.cameraRig.position).add(this.tempPredictionStep);
 
-        // ------------------------------------------------------------------
+        // Kita tidak pakai Set() lagi untuk cek ganda, cukup cek langsung
+        // karena jumlah monster biasanya sedikit.
 
-        // --- TAHAP 1: SAFETY BUBBLE (SAMA SEPERTI SEBELUMNYA) ---
-        // ... (Kode Bubble Check TIDAK PERLU DIUBAH, biarkan apa adanya) ...
-        const playerPos = this.cameraRig.position;
-        const monsterRadius = 120.0;
-        const monsterRadiusSq = monsterRadius * monsterRadius;
-        const predictionStep = directionVec.clone().multiplyScalar(10.0);
-        const nextPos = playerPos.clone().add(predictionStep);
-        const checkedMonsters = new Set();
-        for (const obj of this.state.allSelectableObjects) { // Tetap cek all objects utk bubble
-            // ... (Isi logika bubble biarkan sama) ...
+        const allObjects = this.state.allSelectableObjects;
+
+        for (let i = 0; i < allObjects.length; i++) {
+            const obj = allObjects[i];
+
+            // Cek cepat apakah ini punya potensi jadi monster (punya parent)
             let parent = obj.parent;
             while (parent && parent.type !== 'Scene') {
                 if (parent.userData && parent.userData.isMonster) {
-                    if (!checkedMonsters.has(parent.uuid)) {
-                        checkedMonsters.add(parent.uuid);
-                        if (parent.visible) { // Cek visible penting disini
-                            const dx = playerPos.x - parent.position.x;
-                            const dz = playerPos.z - parent.position.z;
-                            const currentDistSq = dx * dx + dz * dz;
-                            const ndx = nextPos.x - parent.position.x;
-                            const ndz = nextPos.z - parent.position.z;
-                            const nextDistSq = ndx * ndx + ndz * ndz;
-                            if (nextDistSq < monsterRadiusSq && nextDistSq < currentDistSq) {
-                                return true;
-                            }
+
+                    // Cek visibilitas (Optimasi: Jangan hitung jarak kalau hantu invisible)
+                    if (parent.visible) {
+                        const playerPos = this.cameraRig.position;
+
+                        // Hitung Jarak Sekarang (Tanpa objek baru)
+                        const dx = playerPos.x - parent.position.x;
+                        const dz = playerPos.z - parent.position.z;
+                        const currentDistSq = dx * dx + dz * dz;
+
+                        // Hitung Jarak Masa Depan (Tanpa objek baru)
+                        const ndx = this.tempNextPos.x - parent.position.x;
+                        const ndz = this.tempNextPos.z - parent.position.z;
+                        const nextDistSq = ndx * ndx + ndz * ndz;
+
+                        // Logika Jebakan: Hanya blokir jika mendekat ke zona bahaya
+                        if (nextDistSq < monsterRadiusSq && nextDistSq < currentDistSq) {
+                            return true;
                         }
                     }
-                    break;
+                    break; // Sudah ketemu parent monster, lanjut objek berikutnya
                 }
                 parent = parent.parent;
             }
         }
 
-        // --- TAHAP 2: CEK RAYCASTER (LASER) ---
+        // --- TAHAP 2: CEK RAYCASTER (OPTIMIZED) ---
         const rayOffsets = [
             this.playerHeight * 0.2,
             this.playerHeight * 0.6,
             this.playerHeight * 0.9
         ];
 
+        this.raycaster.firstHitOnly = true;
+
         for (let i = 0; i < rayOffsets.length; i++) {
             const offset = rayOffsets[i];
-            const rayOrigin = this.cameraRig.position.clone();
-            rayOrigin.y += offset;
-            this.raycaster.set(rayOrigin, directionVec);
+
+            // Recycle variabel tempRayOrigin
+            this.tempRayOrigin.copy(this.cameraRig.position);
+            this.tempRayOrigin.y += offset;
+
+            this.raycaster.set(this.tempRayOrigin, directionVec);
 
             if (i === 1 && this.showDebugArrow && this.debugArrow) {
-                this.debugArrow.position.copy(rayOrigin);
+                this.debugArrow.position.copy(this.tempRayOrigin);
                 this.debugArrow.setDirection(directionVec);
             }
 
-            // PERUBAHAN DI SINI:
-            // Gunakan 'activeObstacles' (hasil filter), BUKAN 'allSelectableObjects'
-            const intersects = this.raycaster.intersectObjects(activeObstacles, true);
-
+            // Tembak langsung ke array utama
+            const intersects = this.raycaster.intersectObjects(this.state.allSelectableObjects, true);
+            
             for (const hit of intersects) {
                 if (hit.distance > this.collisionPadding) continue;
 
                 let obj = hit.object;
+
+                // Safety Loop Traversal (Tanpa alokasi memori)
                 let depth = 0;
                 const maxDepth = 50;
                 let isMonsterFound = false;
+                let isMonsterVisible = false;
+                let isObjectVisible = true;
 
-                while (obj) {
+                let checkObj = obj;
+                while (checkObj) {
                     depth++;
                     if (depth > maxDepth) break;
 
-                    if (obj.userData && obj.userData.isMonster) {
+                    if (checkObj.visible === false) {
+                        isObjectVisible = false;
                         break;
                     }
-                    if (obj.userData && obj.userData.checkCollision) {
-                        return true;
+
+                    if (checkObj.userData?.isMonster) {
+                        isMonsterFound = true;
+                        isMonsterVisible = checkObj.visible;
                     }
-                    if (obj.type === 'Scene') break;
-                    obj = obj.parent;
+
+                    if (checkObj.type === 'Scene') break;
+                    checkObj = checkObj.parent;
                 }
 
-                // Default: Tabrak
-                if (!obj || !obj.userData || !obj.userData.isMonster) {
-                    return true;
+                if (!isObjectVisible) continue;
+
+                if (isMonsterFound) {
+                    if (isMonsterVisible) return true;
+                    else continue;
                 }
+
+                // Default Tembok
+                return true;
             }
         }
+
+        this.raycaster.firstHitOnly = false;
         return false;
     }
+
     update(delta) {
         if (!delta || delta > 0.1) delta = 0.016;
 
@@ -340,7 +367,7 @@ export class CameraManager {
 
         } else if (this.activeMode === 'FPS') {
 
-            // --- ROLL / MIRING CONTINUOUS ---
+            // --- ROLL / MIRING CONTINUOUS (TETAP SAMA) ---
             const spinSpeed = 2.0;
             if (this.isLeaningLeft) {
                 this.currentRoll += spinSpeed * delta;
@@ -350,46 +377,60 @@ export class CameraManager {
             }
             this.cameraShakeGroup.rotation.z = this.currentRoll;
 
-            // --- FPS MOVEMENT + COLLISION ---
-            const speed = this.fpsMoveSpeed * delta * (this.isRunning ? this.runMultiplier : 1.0);
+            // --- FPS MOVEMENT + SMOOTH DAMPING + COLLISION ---
 
-            // 1. Ambil Arah
-            this.camera.getWorldDirection(this.vecDir);
-            this.vecDir.y = 0;
-            this.vecDir.normalize();
-            this.vecRight.crossVectors(this.vecDir, new THREE.Vector3(0, 1, 0)).normalize();
+            // 1. Hitung Kecepatan Maksimum
+            const maxSpeed = this.fpsMoveSpeed * (this.isRunning ? this.runMultiplier : 1.0);
 
-            // 2. Cek & Gerak MAJU / MUNDUR
-            if (this.moveForward) {
-                // Cek tabrakan ke arah depan (vecDir)
-                if (!this._checkWallCollision(this.vecDir)) {
-                    this.cameraRig.position.addScaledVector(this.vecDir, speed);
-                }
-            }
-            if (this.moveBackward) {
-                // Cek tabrakan ke arah belakang (negate vecDir)
-                const backDir = this.vecDir.clone().negate();
-                if (!this._checkWallCollision(backDir)) {
-                    this.cameraRig.position.addScaledVector(this.vecDir, -speed);
-                }
-            }
+            // 2. Ambil Arah (Pakai Temp Variable biar Hemat Memori/Tidak Stutter)
+            this.camera.getWorldDirection(this.tempVec1);
+            this.tempVec1.y = 0;
+            this.tempVec1.normalize();
 
-            // 3. Cek & Gerak KANAN / KIRI
-            if (this.moveRight) {
-                // Cek tabrakan ke kanan
-                if (!this._checkWallCollision(this.vecRight)) {
-                    this.cameraRig.position.addScaledVector(this.vecRight, speed);
-                }
-            }
-            if (this.moveLeft) {
-                // Cek tabrakan ke kiri
-                const leftDir = this.vecRight.clone().negate();
-                if (!this._checkWallCollision(leftDir)) {
-                    this.cameraRig.position.addScaledVector(this.vecRight, -speed);
-                }
+            // Hitung Kanan (Cross Product)
+            this.tempVec2.crossVectors(this.tempVec1, new THREE.Vector3(0, 1, 0)).normalize();
+
+            // 3. Hitung Target Velocity (Keinginan Player)
+            const targetVelocity = new THREE.Vector3(0, 0, 0); // Vector lokal sementara
+
+            // Akumulasi Input
+            if (this.moveForward) targetVelocity.add(this.tempVec1);
+            if (this.moveBackward) targetVelocity.sub(this.tempVec1);
+            if (this.moveRight) targetVelocity.add(this.tempVec2);
+            if (this.moveLeft) targetVelocity.sub(this.tempVec2);
+
+            // Normalize & Apply Speed
+            if (targetVelocity.lengthSq() > 0) {
+                targetVelocity.normalize().multiplyScalar(maxSpeed);
             }
 
-            // 4. GRAVITASI
+            // 4. TIME-CORRECTED DAMPING (Inilah Kunci Gerakan Halus)
+            // Menggantikan Direct Translation. 
+            // currentMoveVelocity akan mengejar targetVelocity secara eksponensial.
+            const dampFactor = 15.0; // Ubah angka ini: 10.0 (Licin) - 25.0 (Responsif)
+            const alpha = 1 - Math.exp(-dampFactor * delta);
+
+            this.currentMoveVelocity.x += (targetVelocity.x - this.currentMoveVelocity.x) * alpha;
+            this.currentMoveVelocity.z += (targetVelocity.z - this.currentMoveVelocity.z) * alpha;
+
+            // 5. Aplikasikan Gerakan (Dengan Cek Collision)
+            // Kita gunakan hasil damping (currentMoveVelocity) untuk menggerakkan rig
+            const frameMove = this.currentMoveVelocity.clone().multiplyScalar(delta);
+
+            // Cek Collision hanya jika ada pergerakan signifikan
+            if (frameMove.lengthSq() > 0.000001) {
+                const moveDir = frameMove.clone().normalize();
+
+                // Gunakan fungsi collision yang sudah dioptimasi
+                if (!this._checkWallCollision(moveDir)) {
+                    this.cameraRig.position.add(frameMove);
+                } else {
+                    // Jika nabrak, hentikan momentum agar tidak 'tembus' atau 'lengket'
+                    this.currentMoveVelocity.set(0, 0, 0);
+                }
+            }
+
+            // 6. GRAVITASI (TETAP SAMA)
             this.velocity.y -= this.gravity * delta;
             this.cameraRig.position.y += this.velocity.y * delta;
 
