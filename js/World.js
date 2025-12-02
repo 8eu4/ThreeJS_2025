@@ -98,6 +98,9 @@ export class World {
     setLightingManager(manager) {
         this.lightingManager = manager;
     }
+    setStoryManager(manager) {
+        this.storyManager = manager;
+    }
 
     animate() {
         const delta = this.clock.getDelta();

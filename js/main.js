@@ -24,8 +24,8 @@ const saveManager = new SaveManager(state, history);
 const cameraManager = new CameraManager(world, state);
 // Setup Lighting SETELAH Camera (karena senter butuh kamera)
 const lightingManager = new LightingManager(world, cameraManager); // <--- 2. INISIALISASI
-const ui = new UIManager(world, state, history, saveManager, cameraManager);
 const storyManager = new StoryManager(world, cameraManager, lightingManager, state);
+const ui = new UIManager(world, state, history, saveManager, cameraManager, storyManager);
 
 // 3. Berikan referensi (Dependency Injection)
 state.setUIManager(ui);
@@ -37,6 +37,8 @@ ui.setStateManager(state);
 world.setCameraManager(cameraManager); 
 // ------------------------------------------
 world.setLightingManager(lightingManager);
+
+world.setStoryManager(storyManager);
 
 // 4. Muat objek-objek awal ke dalam scene
 loadInitialScene(world, state);

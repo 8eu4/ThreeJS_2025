@@ -146,6 +146,12 @@ export class CameraManager {
                     this.moveUp = false;
                     this.isLeaningRight = false;
                     break;
+                case 'KeyC':
+                    // Panggil fungsi toggle di StoryManager (lewat World)
+                    if (this.world.storyManager) {
+                        this.world.storyManager.toggleEyes(0.5); // Durasi 0.5 detik
+                    }
+                    break;
             }
         };
 
@@ -290,7 +296,7 @@ export class CameraManager {
 
             // Tembak langsung ke array utama
             const intersects = this.raycaster.intersectObjects(this.state.allSelectableObjects, true);
-            
+
             for (const hit of intersects) {
                 if (hit.distance > this.collisionPadding) continue;
 

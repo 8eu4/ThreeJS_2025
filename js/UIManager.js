@@ -6,13 +6,14 @@ import { TransformCommand } from './Commands.js';
 
 export class UIManager {
     // TERIMA cameraManager DI SINI (Parameter ke-5)
-    constructor(world, state, history, saveManager, cameraManager) {
+    constructor(world, state, history, saveManager, cameraManager, storyManager) {
         this.world = world;
         this.state = state;
         this.stateManager = null;
         this.history = history;
         this.saveManager = saveManager;
         this.cameraManager = cameraManager; // Simpan referensi
+        this.storyManager = storyManager; // Simpan referensi
 
         //--- BUAT INPUT FILE UNTUK LOAD ---
         this.fileInput = document.createElement('input');
@@ -338,8 +339,8 @@ export class UIManager {
         const rollFolder = folder.addFolder('Camera Roll');
 
         const settings = {
-            mode: 'Orbit', // Default
-            'Eyes Closed': false,
+            mode: 'Orbit',
+            'Eyes Openness': 1.0, // Ganti jadi Slider 0-1 agar lebih fleksibel
             resetRoll: () => { cam.rotation.z = 0; }
         };
 
@@ -374,11 +375,10 @@ export class UIManager {
         rollFolder.add(cam.rotation, 'z', -Math.PI, Math.PI).name('Roll (Z-axis)').listen();
         rollFolder.add(settings, 'resetRoll').name('Reset Roll');
         
-        folder.add(settings, 'Eyes Closed').onChange((isClosed) => {
-            if (isClosed) {
-                document.body.classList.add('eyes-closed');
-            } else {
-                document.body.classList.remove('eyes-closed');
+        folder.add(settings, 'Eyes Openness', 0, 1).onChange((val) => {
+            if (this.storyManager) {
+                // Panggil fungsi animasi di StoryManager (durasi 0.5 detik biar smooth)
+                this.storyManager.setEyeOpenness(val, 0.5);
             }
         });
 
