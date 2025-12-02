@@ -17,57 +17,149 @@ export class StoryManager {
         // Status Cerita
         this.isStoryPlaying = false;
 
-        this.currentOpenness = 1.0; 
-        
+        this.currentOpenness = 1.0;
+
         // Simpan state tinggi mata (150 = Buka Penuh)
-        this._currentEyeHeight = 150; 
-        
+        this._currentEyeHeight = 150;
+
         // Set kondisi awal Buka (Tanpa animasi)
         setTimeout(() => {
-             this.setEyeOpenness(1.0, 0); 
+            this.setEyeOpenness(1.0, 0);
         }, 100);
     }
 
-    // =========================================================
-    // 🎬 BAGIAN 1: SCRIPT CERITA (SKENARIO)
-    // Di sinilah Anda menulis urutan kejadian filmnya
-    // =========================================================
+    // Fungsi ini yang nanti dipanggil untuk mainkan film full
+    async playFullMovie() {
+        console.log("🎬 FILM DIMULAI...");
 
-    async startOpeningScene() {
-        console.log("--- ACTION! Opening Scene Started ---");
-        this.isStoryPlaying = true;
+        // Scene 1: Bangun Tidur
+        await this.scene01_WakeUp();
 
-        // 1. Setup Awal (Layar Gelap, Mode Cinematic)
-        this._setCinematicMode(true);
-        this._fadeScreen("OUT", 0); // Layar hitam total
+        await this.scene02_GetDownFromBed();
 
-        // 2. Set Posisi Awal (Di Kasur)
-        // Koordinat: Misal X=0, Y=50 (Tidur), Z=0
-        this.cameraManager.cameraRig.position.set(0, 50, 0);
-        this.cameraManager.cameraRig.rotation.set(0, 0, 0); // Lurus
-        this.cameraManager.camera.rotation.set(-Math.PI / 2, 0, 0); // Menghadap Atap (Tidur)
+        // Scene 2: Jalan ke Dapur (Nanti dibuat)
+        // await this.scene02_WalkToKitchen();
 
-        // 3. Mulai Cerita: Buka Mata
-        await this._wait(2); // Tunggu 2 detik dalam gelap
+        console.log("🎬 FILM SELESAI.");
+    }
 
-        console.log("Mata Membuka...");
-        await this._fadeScreen("IN", 4); // Fade in pelan (4 detik) - Efek bangun tidur
+    // scene01 --> Bangun dari tidur (sudah aman, bisa dicontoh cara bikinnya)
+    async scene01_WakeUp() {
+        console.log("--- Scene 1: Wake Up Started ---");
 
-        // 4. Bangun dari kasur (Rotasi kamera dari atas ke depan)
-        await this._tweenCameraRotation(0, 0, 0, 3); // 3 detik bangun duduk
+        // 1. SETUP AWAL
+        this._setGuiVisibility(false); // Sembunyikan UI
+        this._setCinematicMode(true);  // Matikan kontrol player
 
-        // 5. Berdiri (Naikkan Y dari 50 ke 160)
-        await this._tweenRigPosition(null, 160, null, 2); // null artinya axis itu jangan diubah
+        // Posisi Tidur (Di atas kasur, tinggi rendah)
+        // Asumsi kasur ada di 0,0,0. Tinggi mata saat tidur misal 60 unit.
+        this.cameraManager.cameraRig.position.set(150, 0, -20);
+        this.cameraManager.cameraRig.rotation.set(0, Math.PI, 0);
 
-        // 6. Jalan ke Pintu (Pindah Posisi Rig)
-        console.log("Jalan ke pintu...");
-        // Misal pintu ada di Z = -500
-        await this._tweenRigPosition(0, 160, -500, 5); // Jalan 5 detik
+        // Rotasi Kamera: Menghadap Langit-langit (X = -90 derajat)
+        this.cameraManager.camera.rotation.set(Math.PI / 2, 0, 0);
 
-        // 7. Kembalikan kendali ke Pemain
-        console.log("Player Control Active");
-        this._setCinematicMode(false); // Masuk mode FPS
-        this.cameraManager.setMode('FPS');
+        // Mata Tertutup
+        this.setEyeOpenness(0, 0);
+
+        // 2. ACTION!
+        await this._wait(2.0); // Hening 2 detik
+
+        // Fase: Membuka Mata (Perlahan & Berat)
+        console.log("Mata mulai terbuka...");
+        this.setEyeOpenness(0.3, 2.0); // Buka dikit (2 detik)
+        await this._wait(2.5);
+
+        this.setEyeOpenness(0.1, 0.5); // Tutup lagi (ngantuk)
+        await this._wait(1.0);
+
+        // Fase: Blink Sequence (Agar terlihat nyata)
+        await this._blinkSequence();
+
+        // Buka Penuh
+        this.setEyeOpenness(1.0, 1.5);
+        await this._wait(1.0);
+
+        // Fase: Bangun Duduk (Sit Up)
+        console.log("Bangun duduk...");
+
+        // Animasi Paralel: Rotasi Kepala (Ke depan) & Badan Naik (Duduk)
+        const sitUpDuration = 3.0;
+
+        // 1. Kepala menunduk ke depan (X: 0)
+        this._tweenCameraRotation(0, 0, 0, sitUpDuration);
+
+        // 2. Badan naik dari posisi tidur (60) ke posisi duduk/berdiri (130/160)
+        // Kita gunakan tween posisi Rig Y
+        gsap.to(this.cameraManager.cameraRig.position, {
+            y: 145, // Tinggi berdiri (playerHeight)
+            duration: sitUpDuration,
+            ease: "power2.inOut"
+        });
+
+        await this._wait(sitUpDuration + 0.5);
+
+        const lookLeftDuration = 2.0;
+
+        this._tweenCameraRotation(0, Math.PI / 10, 0, lookLeftDuration);
+
+        gsap.to(this.cameraManager.cameraRig.position, {
+            y: 145, // Tinggi berdiri (playerHeight)
+            duration: lookLeftDuration,
+            ease: "power2.inOut"
+        });
+
+        await this._wait(lookLeftDuration + 0.5);
+
+        const lookRightDuration = 2.0;
+
+        this._tweenCameraRotation(0, -Math.PI / 10, 0, lookRightDuration);
+
+        gsap.to(this.cameraManager.cameraRig.position, {
+            y: 145, // Tinggi berdiri (playerHeight)
+            duration: lookRightDuration,
+            ease: "power2.inOut"
+        });
+
+        await this._wait(lookRightDuration + 0.5);
+
+
+        const lookFrontDuration = 1.0;
+
+        this._tweenCameraRotation(0, 0, 0, lookFrontDuration);
+
+        gsap.to(this.cameraManager.cameraRig.position, {
+            y: 145, // Tinggi berdiri (playerHeight)
+            duration: lookFrontDuration,
+            ease: "power2.inOut"
+        });
+
+        await this._wait(lookFrontDuration + 0.5);
+
+
+        // Fase: Selesai
+        console.log("Scene 1 Selesai. Player Control Active.");
+        this._setGuiVisibility(true); // Munculkan UI lagi
+        this._setCinematicMode(false); // Matikan mode cinematic
+
+        // PENTING: Pindah ke FPS agar fisika & collision aktif kembali
+    }
+     // scene02 --> Turun dari kasur dan jalan ke pintu kamar
+     // jika posisi kamera menalanjutkan scene sebelumnya, tidak perlu define lagi posisi awal kamera
+    async scene02_GetDownFromBed(){
+        console.log("--- Scene 1: Wake Up Started ---");
+
+        // 1. SETUP AWAL
+        this._setGuiVisibility(false); // Sembunyikan UI
+        this._setCinematicMode(true);  // Matikan kontrol player
+
+        // pergerakan selanjutnya
+        
+
+
+
+
+
     }
 
     // =========================================================
@@ -75,37 +167,22 @@ export class StoryManager {
     // Fungsi-fungsi teknis untuk menggerakkan aktor/kamera
     // =========================================================
 
-    setEyeOpenness(openness, duration = 1.0) {
-        // Clamp nilai agar tidak lebih dari 0-1
-        const val = Math.max(0, Math.min(1, openness));
-
-        // Hitung posisi Translate Y
-        // Jika Buka (1.0) -> Top ke -100%, Bottom ke 100%
-        // Jika Tutup (0.0) -> Top ke 0%, Bottom ke 0%
-
-        const topY = -100 * val;
-        const bottomY = 100 * val;
-
-        // Animasikan Kelopak Atas
-        gsap.to("#eyelid-top", {
-            yPercent: topY,
-            duration: duration,
-            ease: "power2.inOut" // Gerakan natural (lambat-cepat-lambat)
-        });
-
-        // Animasikan Kelopak Bawah
-        gsap.to("#eyelid-bottom", {
-            yPercent: bottomY,
-            duration: duration,
-            ease: "power2.inOut"
-        });
-    }
-
     // Helper Cepat: Kedip (Blink)
-    async blink(duration = 0.1) {
-        this.setEyeOpenness(0, duration); // Tutup
-        await new Promise(r => setTimeout(r, duration * 1000));
-        this.setEyeOpenness(1, duration); // Buka
+
+    _setGuiVisibility(visible) {
+        const displayStyle = visible ? 'block' : 'none';
+
+        // 1. Panel Kanan (Lil-GUI)
+        const rightPanel = document.querySelector('.lil-gui');
+        if (rightPanel) {
+            rightPanel.style.display = displayStyle;
+        }
+
+        // 2. Panel Kiri (Hierarchy)
+        const leftPanel = document.getElementById('hierarchy-panel');
+        if (leftPanel) {
+            leftPanel.style.display = displayStyle;
+        }
     }
 
     // --- FUNGSI UTAMA: ANIMASI MATA ---
@@ -169,18 +246,47 @@ export class StoryManager {
         }
     }
 
-    // --- A. KAMERA & GERAKAN ---
+    async blink(duration = 0.1) {
+        this.setEyeOpenness(0, duration); // Tutup
+        await new Promise(r => setTimeout(r, duration * 1000));
+        this.setEyeOpenness(1, duration); // Buka
+    }
 
+    async _blinkSequence() {
+        this.setEyeOpenness(0, 0.1); // Tutup cepat
+        await this._wait(0.15);
+        this.setEyeOpenness(0.6, 0.2); // Buka dikit
+        await this._wait(0.3);
+        this.setEyeOpenness(0, 0.1); // Tutup lagi
+        await this._wait(0.15);
+        this.setEyeOpenness(1.0, 0.4); // Buka lebar
+    }
+
+    // --- A. KAMERA & GERAKAN ---
     _setCinematicMode(active) {
         if (active) {
-            // Matikan input player, sembunyikan UI, matikan fisika jatuh
+            console.log("[Story] Masuk Mode Cinematic");
+
+            // 1. Matikan Kontrol Player
             this.cameraManager.activeMode = 'CINEMATIC';
             this.cameraManager.orbitControls.enabled = false;
-            this.cameraManager.fpsControls.unlock(); // Lepas mouse
-            // Reset velocity agar tidak meluncur sisa gerakan sebelumnya
+            this.cameraManager.fpsControls.unlock();
             this.cameraManager.velocity.set(0, 0, 0);
+            this.cameraManager.currentMoveVelocity.set(0, 0, 0);
+
+            // 2. ATTACH CAMERA KE RIG (PENTING!)
+            // Kita paksa kamera masuk ke dalam struktur Rig agar bisa digerakkan oleh StoryManager
+            this.cameraManager.cameraShakeGroup.add(this.cameraManager.camera);
+
+            // 3. RESET TRANSFORM LOKAL KAMERA
+            // Agar kamera duduk pas di titik pusat Rig (tidak ada offset aneh dari mode Orbit sebelumnya)
+            this.cameraManager.camera.position.set(0, 0, 0);
+            this.cameraManager.camera.rotation.set(0, 0, 0);
+
         } else {
-            // Mode FPS akan diaktifkan manual lewat setMode('FPS')
+            console.log("[Story] Keluar Mode Cinematic");
+            // Saat keluar, kita tidak perlu detach manual di sini.
+            // Biarkan setMode('FPS') atau setMode('ORBIT') yang mengurusnya nanti.
         }
     }
 
@@ -234,6 +340,44 @@ export class StoryManager {
 
     _setLightFlicker(lightId, active, speed, chance) {
         this.lightingManager.setFlicker(lightId, active, speed, chance);
+    }
+
+    // Saklar Instan (ON/OFF)
+    // Contoh: _setLightState('light_kitchen', false); -> Mati Total
+    _setLightState(lightId, isOn) {
+        if (!this.lightingManager) return;
+
+        const light = this.lightingManager.lights[lightId];
+        if (light) {
+            light.visible = isOn;
+            // console.log(`[Story] Lampu ${lightId} set to ${isOn ? 'ON' : 'OFF'}`);
+        } else {
+            console.warn(`[Story] Lampu '${lightId}' tidak ditemukan.`);
+        }
+    }
+
+    // Animasi Intensitas (Dimming / Brightening)
+    // Contoh: _tweenLightIntensity('light_kitchen', 0, 5); -> Meredup jadi 0 dalam 5 detik
+    _tweenLightIntensity(lightId, targetIntensity, duration) {
+        return new Promise(resolve => {
+            if (!this.lightingManager) {
+                resolve();
+                return;
+            }
+
+            const light = this.lightingManager.lights[lightId];
+            if (light) {
+                gsap.to(light, {
+                    intensity: targetIntensity,
+                    duration: duration,
+                    ease: "power2.inOut",
+                    onComplete: resolve
+                });
+            } else {
+                console.warn(`[Story] Lampu '${lightId}' tidak ditemukan untuk ditween.`);
+                resolve();
+            }
+        });
     }
 
     // Efek Layar (Blackout / Blink)
