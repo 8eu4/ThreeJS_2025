@@ -16,6 +16,16 @@ export class StoryManager {
 
         // Status Cerita
         this.isStoryPlaying = false;
+
+        this.currentOpenness = 1.0; 
+        
+        // Simpan state tinggi mata (150 = Buka Penuh)
+        this._currentEyeHeight = 150; 
+        
+        // Set kondisi awal Buka (Tanpa animasi)
+        setTimeout(() => {
+             this.setEyeOpenness(1.0, 0); 
+        }, 100);
     }
 
     // =========================================================
@@ -30,22 +40,22 @@ export class StoryManager {
         // 1. Setup Awal (Layar Gelap, Mode Cinematic)
         this._setCinematicMode(true);
         this._fadeScreen("OUT", 0); // Layar hitam total
-        
+
         // 2. Set Posisi Awal (Di Kasur)
         // Koordinat: Misal X=0, Y=50 (Tidur), Z=0
         this.cameraManager.cameraRig.position.set(0, 50, 0);
         this.cameraManager.cameraRig.rotation.set(0, 0, 0); // Lurus
-        this.cameraManager.camera.rotation.set(-Math.PI/2, 0, 0); // Menghadap Atap (Tidur)
+        this.cameraManager.camera.rotation.set(-Math.PI / 2, 0, 0); // Menghadap Atap (Tidur)
 
         // 3. Mulai Cerita: Buka Mata
         await this._wait(2); // Tunggu 2 detik dalam gelap
-        
+
         console.log("Mata Membuka...");
         await this._fadeScreen("IN", 4); // Fade in pelan (4 detik) - Efek bangun tidur
 
         // 4. Bangun dari kasur (Rotasi kamera dari atas ke depan)
         await this._tweenCameraRotation(0, 0, 0, 3); // 3 detik bangun duduk
-        
+
         // 5. Berdiri (Naikkan Y dari 50 ke 160)
         await this._tweenRigPosition(null, 160, null, 2); // null artinya axis itu jangan diubah
 
@@ -72,7 +82,7 @@ export class StoryManager {
         // Hitung posisi Translate Y
         // Jika Buka (1.0) -> Top ke -100%, Bottom ke 100%
         // Jika Tutup (0.0) -> Top ke 0%, Bottom ke 0%
-        
+
         const topY = -100 * val;
         const bottomY = 100 * val;
 
@@ -102,34 +112,47 @@ export class StoryManager {
     // targetRatio: 0.0 (Tutup) sampai 1.0 (Buka)
     // duration: Kecepatan transisi dalam detik
     setEyeOpenness(targetRatio, duration = 1.0) {
-        // Clamp nilai agar tidak error (tetap 0-1)
+        // Clamp 0-1
         const val = Math.max(0, Math.min(1, targetRatio));
-        this.currentOpenness = val; // Simpan status terakhir
+        this.currentOpenness = val;
 
-        // Rumus Posisi:
-        // Saat Buka (1.0) -> Kelopak Atas naik ke -100%
-        // Saat Tutup (0.0) -> Kelopak Atas turun ke 0% (Posisi normal)
-        // Karena tinggi CSS 60%, posisi 0% akan membuat mereka overlap di tengah.
-        
-        const topY = -100 * val;
-        const bottomY = 100 * val;
+        // --- STRATEGI BARU: RADIAL GRADIENT ---
 
-        // Pastikan GSAP ada sebelum dipanggil
-        if (window.gsap) {
-            gsap.to("#eyelid-top", {
-                yPercent: topY,
-                duration: duration,
-                ease: "power2.inOut" // Gerakan smooth (lambat-cepat-lambat)
-            });
+        // Kita butuh objek sementara untuk di-animasikan angkanya oleh GSAP
+        // Karena kita tidak bisa meng-animasikan string "radial-gradient" secara langsung
 
-            gsap.to("#eyelid-bottom", {
-                yPercent: bottomY,
-                duration: duration,
-                ease: "power2.inOut"
-            });
-        } else {
-            console.error("GSAP Library belum diload! Animasi mata gagal.");
-        }
+        const eyelidEl = document.getElementById('cinematic-eyelids');
+
+        if (!eyelidEl || !window.gsap) return;
+
+        // Tentukan tinggi bukaan mata (Vertical Aperture)
+        // 0.0 -> 0% (Tutup total, hitam semua)
+        // 1.0 -> 150% (Buka lebar sampai keluar layar)
+        const targetHeight = val * 150;
+
+        // Kita buat objek proxy untuk menyimpan nilai saat ini
+        // (GSAP akan mengubah nilai 'h' di objek ini setiap frame)
+        // Kita perlu tahu start value-nya agar smooth. 
+        // Idealnya kita simpan 'currentHeight' di class, tapi untuk simpel kita ambil dari variabel global/state
+        if (this._currentEyeHeight === undefined) this._currentEyeHeight = 0; // Default awal tutup/buka sesuai CSS
+
+        const proxy = { h: this._currentEyeHeight };
+
+        gsap.to(proxy, {
+            h: targetHeight,
+            duration: duration,
+            ease: "power2.inOut",
+            onUpdate: () => {
+                // Update CSS setiap frame berdasarkan nilai 'h' yang sedang jalan
+                // Rumus: Ellipse Melebar (150% width) tapi Tinggi berubah (h%)
+                // Transparent mulai 30% dari pusat, Hitam mulai 60% dari pusat (Soft Edge)
+
+                eyelidEl.style.backgroundImage = `radial-gradient(ellipse 150% ${proxy.h}% at center, transparent 30%, black 60%)`;
+
+                // Simpan nilai terakhir agar kalau di-interrupt (toggle C) transisinya nyambung
+                this._currentEyeHeight = proxy.h;
+            }
+        });
     }
 
     // --- FUNGSI TOGGLE (UNTUK TOMBOL C) ---
@@ -151,11 +174,11 @@ export class StoryManager {
     _setCinematicMode(active) {
         if (active) {
             // Matikan input player, sembunyikan UI, matikan fisika jatuh
-            this.cameraManager.activeMode = 'CINEMATIC'; 
+            this.cameraManager.activeMode = 'CINEMATIC';
             this.cameraManager.orbitControls.enabled = false;
             this.cameraManager.fpsControls.unlock(); // Lepas mouse
             // Reset velocity agar tidak meluncur sisa gerakan sebelumnya
-            this.cameraManager.velocity.set(0,0,0);
+            this.cameraManager.velocity.set(0, 0, 0);
         } else {
             // Mode FPS akan diaktifkan manual lewat setMode('FPS')
         }
@@ -225,7 +248,7 @@ export class StoryManager {
             }
 
             const targetOpacity = type === "OUT" ? 1 : 0; // 1 = Hitam, 0 = Transparan
-            
+
             gsap.to(overlay.style, {
                 opacity: targetOpacity,
                 duration: duration,

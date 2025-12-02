@@ -104,50 +104,23 @@
 
 
     /* --- PERBAIKAN CSS EFEK KEDIP MATA --- */
-    .eyelid {
-      position: fixed;
-      left: 0;
-      width: 100%;
-
-      /* KUNCI 1: Height 60%. 
-           Lebih dari 50% agar saat menutup, atas dan bawah saling menumpuk (Overlap) 
-           sehingga tidak ada celah cahaya di tengah. */
-      height: 60%;
-
-      background-color: #000000;
-      /* Hitam Pekat */
-      z-index: 9999;
-      pointer-events: none;
-      /* Agar klik tembus saat mata terbuka */
-      will-change: transform;
-      /* Optimasi render browser */
-    }
-
-    #eyelid-top {
-      top: 0;
-      /* Default: Sembunyi di atas (-100%) */
-      /* transform: translateY(-100%); */
-
-      /* Lengkungan bawah */
-      border-bottom-left-radius: 50% 20%;
-      border-bottom-right-radius: 50% 20%;
-
-      /* Shadow tebal ke bawah untuk efek vignette/blur di pinggiran mata */
-      box-shadow: 0px 10px 60px 30px rgba(0, 0, 0, 1.0);
-    }
-
-    #eyelid-bottom {
-      bottom: 0;
-      /* Default: Sembunyi di bawah (100%) */
-      /* transform: translateY(100%); */
-
-      /* Lengkungan atas */
-      border-top-left-radius: 50% 20%;
-      border-top-right-radius: 50% 20%;
-
-      /* Shadow tebal ke atas */
-      box-shadow: 0px -10px 60px 30px rgba(0, 0, 0, 1.0);
-    }
+    /* GAYA BARU: CINEMATIC VIGNETTE BLINK */
+      #cinematic-eyelids {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        pointer-events: none; /* Klik tembus */
+        
+        /* Default: Hitam Pekat (Tertutup) */
+        /* background-color: black; */
+        
+        /* Kita akan memanipulasi properti ini via JS */
+        /* Ellipse lebar (150%) tapi tingginya 0% (gepeng/tutup) */
+        background-image: radial-gradient(ellipse 150% 0% at center, transparent 30%, black 60%);
+      }
 
     /* --- AKHIR PERBAIKAN CSS --- */
   </style>
@@ -160,8 +133,7 @@
     <div id="hierarchy-list"></div>
   </div>
 
-  <div id="eyelid-top" class="eyelid"></div>
-  <div id="eyelid-bottom" class="eyelid"></div>
+  <div id="cinematic-eyelids"></div>
 
   <script async src="https://unpkg.com/es-module-shims@1.10.0"></script>
   <script type="importmap">
