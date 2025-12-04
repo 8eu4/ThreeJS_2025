@@ -37,8 +37,7 @@ export class StoryManager {
 
         await this.scene02_GetDownFromBed();
 
-        // Scene 2: Jalan ke Dapur (Nanti dibuat)
-        // await this.scene02_WalkToKitchen();
+        await this.scene03_WalkOutsideBedroom();
 
         console.log("🎬 FILM SELESAI.");
     }
@@ -144,22 +143,148 @@ export class StoryManager {
 
         // PENTING: Pindah ke FPS agar fisika & collision aktif kembali
     }
-     // scene02 --> Turun dari kasur dan jalan ke pintu kamar
-     // jika posisi kamera menalanjutkan scene sebelumnya, tidak perlu define lagi posisi awal kamera
-    async scene02_GetDownFromBed(){
-        console.log("--- Scene 1: Wake Up Started ---");
+    // scene02 --> Turun dari kasur dan jalan ke pintu kamar
+    // jika posisi kamera menalanjutkan scene sebelumnya, tidak perlu define lagi posisi awal kamera
+    async scene02_GetDownFromBed() {
+        console.log("--- Scene 2: Get Down From Bed ---");
 
         // 1. SETUP AWAL
         this._setGuiVisibility(false); // Sembunyikan UI
         this._setCinematicMode(true);  // Matikan kontrol player
 
-        // pergerakan selanjutnya
+        await this._wait(0);
+
+        // --- ACTION 1: GESER KE PINGGIR KASUR (KIRI) ---
+        // Badan geser kiri, Kepala noleh kiri + nunduk (lihat lantai)
+        console.log("Geser ke pinggir kasur...");
+
+        const shiftDuration = 2.0;
+
+        await Promise.all([
+            // A. Badan: Geser X ke kiri (dari 150 ke 90)
+            this._tweenRigPosition(100, null, null, shiftDuration),
+
+            // B. Kepala: Kombinasi Noleh Kiri (Y) dan Nunduk (X)
+            // Pitch (X): -0.6 (Nunduk lihat bawah)
+            // Yaw (Y): 0.8 (Noleh Kiri)
+            // Roll (Z): 0 (Netral) atau 0.1 (Miring dikit)
+            this._tweenCameraRotation(-Math.PI / 4, -Math.PI / 2, 0, shiftDuration)
+        ]);
+
+        await this._wait(0.5); // Pause sebentar di pinggir kasur
+
+        // --- ACTION 2: TURUN & BERDIRI ---
+        // Badan naik (berdiri), Kepala tegak (lihat depan)
+        console.log("Berdiri...");
+
+        const standDuration = 2.5;
+
+        await Promise.all([
+            // A. Badan: Naik ke tinggi berdiri (160) dan maju sedikit menjauhi kasur (Z ke 0)
+            this._tweenRigPosition(null, 160, null, standDuration),
+
+            // B. Kepala: Reset pandangan ke depan (0,0,0)
+            // Ini akan menciptakan efek "Mendongak" saat badan naik
+            this._tweenCameraRotation(0, -Math.PI / 2, 0, standDuration)
+        ]);
+
+        // --- SELESAI ---
+        console.log("Scene 2 Selesai.");
+        // await this._handoverToPlayer();
+        // PENTING: Sinkronisasi rotasi Rig sebelum serahkan ke FPS
+        // Karena tadi kita memutar KAMERA (Y=0.8), tapi Rig masih lurus (Y=0).
+        // Saat masuk FPS, kita ingin arah badan ikut arah kepala terakhir atau reset lurus.
+        // Di sini kita sudah reset kamera ke 0,0,0 jadi aman (menghadap depan Rig).
+
+        // this._setCinematicMode(false);
+        // this._setGuiVisibility(true);
+        // this.cameraManager.setMode('FPS');
+    }
+
+    async scene03_WalkOutsideBedroom() {
+        console.log("--- Scene 3: Walk Outside Started ---");
+
+        // 1. SETUP (Tanpa Reset Rotasi Paksa)
+        // Kita nyalakan mode cinematic, tapi kita akan perbaiki rotasinya manual
+        this._setCinematicMode(true);
+        this._setGuiVisibility(false);
+
+        // --- STRATEGI PERBAIKAN ROTASI (TRANSFER HEAD -> BODY) ---
         
+        // A. Ambil Rotasi Kepala Terakhir (Y) dari Scene 2
+        // Scene 2 berakhir dengan kepala menoleh kiri 90 derajat (Math.PI/2)
+        // dan Badan menghadap tembok belakang (Math.PI)
+        
+        // Kita ingin: Badan sekarang menghadap Pintu (Total Rotasi Y)
+        // Jadi kita "oper" rotasi kepala ke badan.
+        
+        // Putar Badan (Rig) 90 derajat lagi ke kiri (sesuai arah tolehan terakhir)
+        this.cameraManager.cameraRig.rotation.y -= (Math.PI / 2); 
+        
+        // Reset Kepala (Camera) jadi lurus (0)
+        // Karena badannya sudah diputar, visualnya akan terlihat SAMA PERSIS (tidak ada patahan)
+        this.cameraManager.camera.rotation.y = 0;
+        this.cameraManager.camera.rotation.x = 0; // Reset nunduk juga jika ada
 
+        // ---------------------------------------------------------
 
+        await this._wait(1.0); 
 
+        console.log("Maju & Lirik...");
+        
+        const stepOutDuration = 1.0;
 
+        await Promise.all([
+            // Badan maju menjauhi kasur (Z: -30 -> 30)
+            this._tweenRigPosition(30, null, null, stepOutDuration),
+            
+            // Kepala menoleh kiri 45 derajat (mencari pintu)
+            this._tweenCameraRotation(0, Math.PI / 4, 0, stepOutDuration)
+        ]);
 
+        // --- ACTION 2: TURN & WALK (Badan putar kiri + Jalan ke Pintu) ---
+        console.log("Belok & Jalan ke Pintu...");
+        
+        const walkDuration = 4;
+        
+        // Target: Pintu (Misal X=350, Z=350). Sesuaikan dengan map Anda.
+        
+        await Promise.all([
+            // Posisi: Pindah diagonal ke depan pintu
+            this._tweenRigPosition(-150, null, 350, walkDuration),
+            
+            // Rotasi Badan: Putar 90 derajat ke Kiri (Menghadap Pintu)
+            // Awal: Math.PI (180). Akhir: Math.PI / 2 (90).
+            // (Tergantung sistem koordinat, mungkin perlu Math.PI + Math.PI/2)
+            // Kita coba putar badan ke Kiri (kurangi sudut atau tambah sudut)
+            // Asumsi: Menghadap Pintu = Math.PI / 2 (90 derajat)
+            this._tweenRigRotation(null, 0, null, walkDuration),
+            
+            // Rotasi Kepala: Reset ke 0 (Lurus searah badan)
+            // Ini membuat efek "Badan menyusul Kepala" yang natural
+            this._tweenCameraRotation(0, 0, 0, walkDuration)
+        ]);
+
+        // --- ACTION 3: ARRIVAL (Berhenti Rapih) ---
+        console.log("Sampai depan pintu.");
+        
+        const alignDuration = 1.0;
+        
+        await Promise.all([
+            // Maju dikit lagi biar pas (X=400)
+            this._tweenRigPosition(-200, null, 350, alignDuration),
+            
+            // Pastikan rotasi lurus sempurna
+            this._tweenRigRotation(null, -Math.PI / 4, null, alignDuration)
+        ]);
+
+        console.log("Scene 3 Selesai.");
+        
+        // Lanjut ke Scene 4 (Buka Pintu) nanti...
+        // Untuk sekarang stop dulu di sini
+        // this._setGuiVisibility(true);
+        // this._setCinematicMode(false);
+        // this.cameraManager.setMode('FPS');
     }
 
     // =========================================================
@@ -168,6 +293,27 @@ export class StoryManager {
     // =========================================================
 
     // Helper Cepat: Kedip (Blink)
+
+    // _handoverToPlayer() {
+    //     console.log("⏳ Menunggu klik pemain untuk mulai...");
+    //     return new Promise(resolve => {
+    //         // Kita buat listener sekali pakai
+    //         const onClick = () => {
+    //             window.removeEventListener('click', onClick);
+
+    //             // EKSEKUSI DI SINI (Di dalam event click agar Browser mengizinkan)
+    //             this._setGuiVisibility(true); 
+    //             this._setCinematicMode(false); 
+    //             this.cameraManager.setMode('FPS');
+
+    //             console.log("✅ Kendali diserahkan ke pemain.");
+    //             resolve();
+    //         };
+
+    //         // Pasang jebakan klik di window
+    //         window.addEventListener('click', onClick);
+    //     });
+    // }
 
     _setGuiVisibility(visible) {
         const displayStyle = visible ? 'block' : 'none';
@@ -317,6 +463,23 @@ export class StoryManager {
                 x: x, // Pitch (Atas Bawah)
                 y: y, // Yaw (Kiri Kanan)
                 z: z, // Roll (Miring)
+                duration: duration,
+                ease: "power2.inOut",
+                onComplete: resolve
+            });
+        });
+    }
+
+    // Helper untuk memutar CameraRig (Badan)
+    _tweenRigRotation(x, y, z, duration) {
+        return new Promise(resolve => {
+            const target = {};
+            if (x !== null) target.x = x;
+            if (y !== null) target.y = y;
+            if (z !== null) target.z = z;
+
+            gsap.to(this.cameraManager.cameraRig.rotation, {
+                ...target,
                 duration: duration,
                 ease: "power2.inOut",
                 onComplete: resolve

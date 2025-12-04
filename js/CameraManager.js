@@ -18,6 +18,8 @@ export class CameraManager {
         this.world = world;
         this.state = state;
         this.camera = world.camera;
+        this.camera.rotation.order = 'YXZ';
+
         this.scene = world.scene;
         this.domElement = world.renderer.domElement;
 
