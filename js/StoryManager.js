@@ -185,7 +185,7 @@ export class StoryManager {
 
             // B. Kepala: Reset pandangan ke depan (0,0,0)
             // Ini akan menciptakan efek "Mendongak" saat badan naik
-            this._tweenCameraRotation(0, -Math.PI / 2, 0, standDuration)
+            this._tweenCameraRotation(0, -Math.PI / 2, 0, standDuration),
         ]);
 
         // --- SELESAI ---
@@ -204,84 +204,78 @@ export class StoryManager {
     async scene03_WalkOutsideBedroom() {
         console.log("--- Scene 3: Walk Outside Started ---");
 
-        // 1. SETUP (Tanpa Reset Rotasi Paksa)
-        // Kita nyalakan mode cinematic, tapi kita akan perbaiki rotasinya manual
-        this._setCinematicMode(true);
+        // 1. SETUP (Lanjutan dari Scene 2)
         this._setGuiVisibility(false);
 
-        // --- STRATEGI PERBAIKAN ROTASI (TRANSFER HEAD -> BODY) ---
-        
-        // A. Ambil Rotasi Kepala Terakhir (Y) dari Scene 2
-        // Scene 2 berakhir dengan kepala menoleh kiri 90 derajat (Math.PI/2)
-        // dan Badan menghadap tembok belakang (Math.PI)
-        
-        // Kita ingin: Badan sekarang menghadap Pintu (Total Rotasi Y)
-        // Jadi kita "oper" rotasi kepala ke badan.
-        
-        // Putar Badan (Rig) 90 derajat lagi ke kiri (sesuai arah tolehan terakhir)
-        this.cameraManager.cameraRig.rotation.y -= (Math.PI / 2); 
-        
-        // Reset Kepala (Camera) jadi lurus (0)
-        // Karena badannya sudah diputar, visualnya akan terlihat SAMA PERSIS (tidak ada patahan)
-        this.cameraManager.camera.rotation.y = 0;
-        this.cameraManager.camera.rotation.x = 0; // Reset nunduk juga jika ada
-
-        // ---------------------------------------------------------
-
-        await this._wait(1.0); 
-
+        // --- ACTION 1: STEP OUT (Maju dikit dari kasur) ---
         console.log("Maju & Lirik...");
-        
-        const stepOutDuration = 1.0;
+
+        const stepOutDuration = 3.0;
 
         await Promise.all([
             // Badan maju menjauhi kasur (Z: -30 -> 30)
             this._tweenRigPosition(30, null, null, stepOutDuration),
-            
+
             // Kepala menoleh kiri 45 derajat (mencari pintu)
-            this._tweenCameraRotation(0, Math.PI / 4, 0, stepOutDuration)
+            this._tweenCameraRotation(0, -Math.PI / 4, 0, stepOutDuration)
         ]);
 
-        // --- ACTION 2: TURN & WALK (Badan putar kiri + Jalan ke Pintu) ---
+        // --- ACTION 2: TURN & WALK (Putar Badan ke Arah Pintu + Jalan) ---
         console.log("Belok & Jalan ke Pintu...");
-        
-        const walkDuration = 4;
-        
-        // Target: Pintu (Misal X=350, Z=350). Sesuaikan dengan map Anda.
-        
+
+        const walkDuration = 5;
+
+        // Target Lokasi Pintu: (X=350, Z=350)
+        // Posisi Awal Badan: (X=0, Z=30)
+        // Arah Hadap Badan Saat Ini: Math.PI (180 derajat / Menghadap Belakang Z-)
+
+        // Kita ingin badan menghadap ke titik tujuan.
+        // Secara matematika, arah dari (0,30) ke (350,350) adalah sekitar 45 derajat (Serong Kanan Bawah).
+        // Tapi dalam rotasi Y Three.js:
+        // 0 = -Z (Utara)
+        // Math.PI = +Z (Selatan)
+        // Math.PI/2 = -X (Timur/Kanan) 
+        // -Math.PI/2 = +X (Barat/Kiri)
+
+        // Mari kita coba putar badan menghadap SERONG KIRI BELAKANG (Arah Pintu).
+        // Sudut Target: Math.PI + (Math.PI / 4)  = 225 derajat (Serong Kiri Bawah)
+        // Atau dalam radian sekitar 3.9 atau -2.3
+
+        const targetBodyRotation = (Math.PI/2) + (Math.PI / 6);
+
         await Promise.all([
-            // Posisi: Pindah diagonal ke depan pintu
-            this._tweenRigPosition(-150, null, 350, walkDuration),
-            
-            // Rotasi Badan: Putar 90 derajat ke Kiri (Menghadap Pintu)
-            // Awal: Math.PI (180). Akhir: Math.PI / 2 (90).
-            // (Tergantung sistem koordinat, mungkin perlu Math.PI + Math.PI/2)
-            // Kita coba putar badan ke Kiri (kurangi sudut atau tambah sudut)
-            // Asumsi: Menghadap Pintu = Math.PI / 2 (90 derajat)
-            this._tweenRigRotation(null, 0, null, walkDuration),
-            
-            // Rotasi Kepala: Reset ke 0 (Lurus searah badan)
-            // Ini membuat efek "Badan menyusul Kepala" yang natural
+            // 1. Geser Posisi ke Depan Pintu
+            this._tweenRigPosition(-230, null, 350, walkDuration),
+
+            // 2. PUTAR BADAN MENGHADAP TUJUAN
+            // Ini kunci agar tidak terlihat strafing (jalan miring)
+            this._tweenRigRotation(null, targetBodyRotation, null, walkDuration),
+
+            // 3. RESET KEPALA KE LURUS
+            // Karena badan sudah berputar ke arah pintu, kepala harus kembali lurus (0)
+            // agar pandangan tetap fokus ke depan.
             this._tweenCameraRotation(0, 0, 0, walkDuration)
         ]);
 
-        // --- ACTION 3: ARRIVAL (Berhenti Rapih) ---
+        // --- ACTION 3: ARRIVAL (Luruskan Badan Tepat Depan Pintu) ---
         console.log("Sampai depan pintu.");
-        
-        const alignDuration = 1.0;
-        
+
+        const alignDuration = 2.0;
+
+        // Misal pintu menghadap sumbu X, kita luruskan badan 90 derajat
+        const finalRotation = Math.PI / 2; // Menghadap Kiri (90 derajat) atau sesuaikan
+
         await Promise.all([
-            // Maju dikit lagi biar pas (X=400)
-            this._tweenRigPosition(-200, null, 350, alignDuration),
-            
-            // Pastikan rotasi lurus sempurna
-            this._tweenRigRotation(null, -Math.PI / 4, null, alignDuration)
+            // Maju dikit lagi (X=400)
+            this._tweenRigPosition(-230, null, 350, alignDuration),
+
+            // Luruskan badan tegak lurus pintu
+            this._tweenRigRotation(null, finalRotation, null, alignDuration)
         ]);
 
         console.log("Scene 3 Selesai.");
-        
-        // Lanjut ke Scene 4 (Buka Pintu) nanti...
-        // Untuk sekarang stop dulu di sini
+
+        // // Stop di sini untuk scene selanjutnya
         // this._setGuiVisibility(true);
         // this._setCinematicMode(false);
         // this.cameraManager.setMode('FPS');
