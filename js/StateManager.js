@@ -33,36 +33,34 @@ export class StateManager {
         }
     }
 
-    setSelectedObject(obj) {
+setSelectedObject(obj) {
         const oldSelection = this.selectedObject;
 
-        // 1. Hapus highlight/GUI dari objek lama
+        // 1. Matikan Highlight Lama (Recursive)
         if (oldSelection) {
-            if (oldSelection.material && oldSelection.material.emissive) {
-                oldSelection.material.emissive.setHex(0x000000);
-            }
+            oldSelection.traverse((child) => {
+                if (child.isMesh && child.material && child.material.emissive) {
+                    child.material.emissive.setHex(0x000000);
+                }
+            });
         }
-        // Beri tahu UI untuk menyembunyikan GUI lama
-        if (this.ui) {
-            this.ui.hideActiveGUIs();
-        }
+        
+        if (this.ui) this.ui.hideActiveGUIs();
 
-        // 2. Set objek baru
+        // 2. Set Baru
         this.selectedObject = obj;
 
-        // 3. Tambah highlight/GUI ke objek baru
+        // 3. Nyalakan Highlight Baru (Recursive untuk Parent)
         if (this.selectedObject) {
-            // Highlight
-            if (this.selectedObject.material && this.selectedObject.material.emissive) {
-                this.selectedObject.material.emissive.setHex(0x555555);
-            }
-            // Beri tahu UI untuk menampilkan GUI yang relevan
-            if (this.ui) {
-                this.ui.showGUIFor(this.selectedObject);
-            }
+            this.selectedObject.traverse((child) => {
+                if (child.isMesh && child.material && child.material.emissive) {
+                    child.material.emissive.setHex(0x555555); // Abu-abu
+                }
+            });
+
+            if (this.ui) this.ui.showGUIFor(this.selectedObject);
         }
 
-        // 4. Update sorotan hierarki & gizmo
         if (this.ui) {
             this.ui.updateHierarchyHighlight();
             this.ui.updateTransformControls(this.selectedObject, this.draggableObjects);

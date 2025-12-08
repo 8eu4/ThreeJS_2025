@@ -29,18 +29,118 @@ export class StoryManager {
     }
 
     // Fungsi ini yang nanti dipanggil untuk mainkan film full
+    // async playFullMovie() {
+    //     console.log("🎬 FILM DIMULAI...");
+
+    //     // Scene 1: Bangun Tidur
+    //     await this.scene01_WakeUp();
+
+    //     await this.scene02_GetDownFromBed();
+
+    //     await this.scene03_WalkOutsideBedroom();
+
+    //     console.log("🎬 FILM SELESAI.");
+    // }
     async playFullMovie() {
-        console.log("🎬 FILM DIMULAI...");
+        console.log("🎬 ACTION! (Smooth Waypoint Animation)");
 
-        // Scene 1: Bangun Tidur
-        await this.scene01_WakeUp();
+        this._setCinematicMode(true);
+        this._setGuiVisibility(false);
 
-        await this.scene02_GetDownFromBed();
+        // 1. POSISI AWAL (Point A)
+        // Untuk start game, biasanya memang Teleport (Instant) biar gak aneh
+        this._instantSetPosition("Point_A_Kasur");
 
-        await this.scene03_WalkOutsideBedroom();
+        // 2. BANGUN TIDUR
+        await this.blink(0.5);
+        await this._wait(1.0);
 
-        console.log("🎬 FILM SELESAI.");
+        // 3. JALAN KE PINTU (Point B)
+        // Bergerak halus selama 4 detik menuju posisi & rotasi Point B
+        console.log("🚶 Jalan ke Pintu...");
+        await this.playerMoveToWaypoint("Point_B_Pintu", 4.0);
+
+        await this._wait(0.5);
+
+        // 4. JALAN KE KORIDOR (Point C) - Contoh jika ada
+        // console.log("🚶 Ke Koridor...");
+        // await this.playerMoveToWaypoint("Point_C_Koridor", 3.0);
+
+        console.log("🎬 CUT! Scene Selesai.");
+        this._setCinematicMode(false);
+        this._setGuiVisibility(true);
+        this.cameraManager.setMode('FPS');
     }
+
+    _instantSetPosition(waypointName) {
+        const waypoint = this.scene.getObjectByName(waypointName);
+        if (waypoint) {
+            this.cameraManager.cameraRig.position.copy(waypoint.position);
+            this.cameraManager.cameraRig.rotation.y = waypoint.rotation.y;
+            this.cameraManager.camera.rotation.x = waypoint.rotation.x;
+            this.cameraManager.cameraShakeGroup.rotation.z = waypoint.rotation.z;
+        }
+    }
+
+    playerMoveToWaypoint(waypointName, duration) {
+        return new Promise(resolve => {
+            const waypoint = this.scene.getObjectByName(waypointName);
+            
+            if (!waypoint) {
+                console.error(`❌ Waypoint '${waypointName}' tidak ditemukan!`);
+                resolve(); 
+                return;
+            }
+
+            const rig = this.cameraManager.cameraRig;
+            const cam = this.cameraManager.camera;
+            const neck = this.cameraManager.cameraShakeGroup;
+
+            // Target Posisi & Rotasi dari Waypoint
+            const targetPos = waypoint.position;
+            const targetRotY = waypoint.rotation.y; // Badan (Kiri/Kanan)
+            const targetRotX = waypoint.rotation.x; // Kepala (Atas/Bawah)
+            const targetRotZ = waypoint.rotation.z; // Leher (Miring)
+
+            // GSAP Timeline untuk sinkronisasi semua gerakan
+            const tl = gsap.timeline({ 
+                onComplete: resolve,
+                defaults: { ease: "power2.inOut" } // Gerakan mulus (Lambat-Cepat-Lambat)
+            });
+
+            // 1. Animasi Posisi (Badan Jalan)
+            tl.to(rig.position, {
+                x: targetPos.x,
+                y: targetPos.y,
+                z: targetPos.z,
+                duration: duration
+            }, 0);
+
+            // 2. Animasi Rotasi Badan (Y - Kiri/Kanan)
+            // Three.js rotasi kadang muter jauh (350 derajat ke 10 derajat).
+            // Kita biarkan GSAP menangani interpolasi terpendeknya (biasanya aman).
+            tl.to(rig.rotation, {
+                y: targetRotY,
+                duration: duration
+            }, 0);
+
+            // 3. Animasi Rotasi Kepala (X - Dongak/Nunduk)
+            tl.to(cam.rotation, {
+                x: targetRotX,
+                duration: duration
+            }, 0);
+
+            // 4. Animasi Miring (Z - Roll)
+            tl.to(neck.rotation, {
+                z: targetRotZ,
+                duration: duration
+            }, 0);
+            
+            console.log(`▶️ Moving to ${waypointName} (${duration}s)`);
+        });
+    }
+
+
 
     // scene01 --> Bangun dari tidur (sudah aman, bisa dicontoh cara bikinnya)
     async scene01_WakeUp() {
@@ -241,7 +341,7 @@ export class StoryManager {
         // Sudut Target: Math.PI + (Math.PI / 4)  = 225 derajat (Serong Kiri Bawah)
         // Atau dalam radian sekitar 3.9 atau -2.3
 
-        const targetBodyRotation = (Math.PI/2) + (Math.PI / 6);
+        const targetBodyRotation = (Math.PI / 2) + (Math.PI / 6);
 
         await Promise.all([
             // 1. Geser Posisi ke Depan Pintu

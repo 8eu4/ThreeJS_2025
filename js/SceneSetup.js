@@ -7,6 +7,54 @@ export function loadInitialScene(world, state) {
     // _createPrimitives(world, state);
     // _createLights(world, state);
     _loadModels(world, state);
+
+    _createCinematicWaypoint(world, state, "Point_A_Kasur", 
+        new THREE.Vector3(-72, 4, -37),
+        new THREE.Euler(0, 143, 0));
+
+    _createCinematicWaypoint(world, state, "Point_B_Pintu", 
+        new THREE.Vector3(-86, 4, -21),
+        new THREE.Euler(0, 89, 0));
+    // _createCinematicWaypoint(world, state, "Point_C_Koridor", new THREE.Vector3(-500, 160, 350));
+
+}
+
+function _createCinematicWaypoint(world, state, name, position, rotationDeg) {
+    // Default rotasi 0,0,0 jika tidak diisi
+    if (!rotationDeg) rotationDeg = new THREE.Vector3(0, 0, 0);
+
+    const geometry = new THREE.BoxGeometry(2, 2, 4); // Kotak memanjang ke depan biar kelihatan arahnya
+    const material = new THREE.MeshBasicMaterial({ 
+        color: 0xffff00, 
+        wireframe: true,
+        transparent: true,
+        opacity: 0.5 
+    });
+    
+    const waypoint = new THREE.Mesh(geometry, material);
+    waypoint.name = name;
+    waypoint.position.copy(position);
+    
+    // KONVERSI Vektor Derajat -> Euler Radians
+    waypoint.rotation.set(
+        THREE.MathUtils.degToRad(rotationDeg.x),
+        THREE.MathUtils.degToRad(rotationDeg.y),
+        THREE.MathUtils.degToRad(rotationDeg.z)
+    );
+    
+    waypoint.userData.isWaypoint = true; 
+    
+    // VISUALISASI ARAH (Panah)
+    // Kita tempel panah yang menunjuk ke arah "Depan" lokal kotak ini (-Z)
+    const dir = new THREE.Vector3(0, 0, -1); // Arah depan karakter (-Z)
+    const length = 5;
+    const hex = 0x00ffff; // Cyan
+    const arrowHelper = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), length, hex);
+    
+    waypoint.add(arrowHelper);
+
+    world.add(waypoint);
+    state.addObject(waypoint, { isSelectable: true, isDraggable: true });
 }
 
 
@@ -111,82 +159,64 @@ export function _loadModels(world, state) {
     const gltfLoader = new GLTFLoader();
 
     const modelsToLoad = [
-        // --- 1. BEDROOM (PUSAT) ---
         {
-            url: './Models/bedroom.glb',
+            url: './Models/FullEnvironment.glb',
             position: new THREE.Vector3(0, 0, 0),
-            scale: new THREE.Vector3(100, 100, 100),
+            scale: new THREE.Vector3(1, 1, 1),
             rotation: new THREE.Euler(0, 0, 0),
             fixOrigin: true, // Bangunan = Fix Origin
             isMonster: false // Bukan Monster
         },
-        // --- 2. KITCHEN ---
-        {
-            url: './Models/kitchen.glb',
-            position: new THREE.Vector3(700, 0, -400),
-            scale: new THREE.Vector3(1, 1, 1),
-            rotation: new THREE.Euler(0, 0, 0),
-            fixOrigin: true,
-            isMonster: false
-        },
-        // --- 3. CORRIDOR ---
-        {
-            url: './Models/horror_corridor_4.glb',
-            position: new THREE.Vector3(1700, 0, 500),
-            scale: new THREE.Vector3(170, 170, 170),
-            rotation: new THREE.Euler(0, -Math.PI / 2, 0),
-            fixOrigin: true,
-            isMonster: false
-        },
-        // --- 4. HANTU (ANIMASI) ---
-        {
-            url: './Models/nightmare_creature_1.glb',
-            name: 'Ghost_Corridor', 
-            position: new THREE.Vector3(-350, 0, -350),
-            scale: new THREE.Vector3(90, 90, 90),
-            rotation: new THREE.Euler(0, Math.PI / 2, 0),
-            
-            animName: 'Creature_armature|walk', 
-            visible: false,      
-            fixOrigin: false,   // Hantu = Jangan Fix Origin
-            isMonster: true     // <--- PENTING: TANDA BAHWA INI MONSTER
-        },
-        {
-            url: './Models/nightmare_creature_1.glb',
-            name: 'Ghost_Kitchen_Window', 
-            position: new THREE.Vector3(650, 0, -580),
-            scale: new THREE.Vector3(80, 80, 80),
-            rotation: new THREE.Euler(0, 0, 0),
 
-            animName: 'Creature_armature|roar',
-            visible: true,     // Sembunyi
-            fixOrigin: false,
-            isMonster: true     // <--- TANDA MONSTER
-        },
-        {
-            url: './Models/nightmare_creature_1.glb',
-            name: 'Ghost_Kitchen', 
-            position: new THREE.Vector3(650, 2, -350),
-            scale: new THREE.Vector3(80, 80, 80),
-            rotation: new THREE.Euler(0, Math.PI / 2, 0),
+        // // --- 4. HANTU (ANIMASI) ---
+        // {
+        //     url: './Models/nightmare_creature_1.glb',
+        //     name: 'Ghost_Corridor', 
+        //     position: new THREE.Vector3(-350, 0, -350),
+        //     scale: new THREE.Vector3(90, 90, 90),
+        //     rotation: new THREE.Euler(0, Math.PI / 2, 0),
 
-            animName: 'Creature_armature|roar', 
-            visible: false,     // Sembunyi
-            fixOrigin: false,
-            isMonster: true     // <--- TANDA MONSTER
-        },
-        {
-            url: './Models/nightmare_creature_1.glb',
-            name: 'Ghost_Corridor_Chasing', 
-            position: new THREE.Vector3(2480, 20, 20),
-            scale: new THREE.Vector3(80, 80, 80),
-            rotation: new THREE.Euler(0, 0, 0),
+        //     animName: 'Creature_armature|walk', 
+        //     visible: false,      
+        //     fixOrigin: false,   // Hantu = Jangan Fix Origin
+        //     isMonster: true     // <--- PENTING: TANDA BAHWA INI MONSTER
+        // },
+        // {
+        //     url: './Models/nightmare_creature_1.glb',
+        //     name: 'Ghost_Kitchen_Window', 
+        //     position: new THREE.Vector3(650, 0, -580),
+        //     scale: new THREE.Vector3(80, 80, 80),
+        //     rotation: new THREE.Euler(0, 0, 0),
 
-            animName: 'Creature_armature|crawl', 
-            visible: false,     // Sembunyi
-            fixOrigin: false,
-            isMonster: true     // <--- TANDA MONSTER
-        },
+        //     animName: 'Creature_armature|roar',
+        //     visible: true,     // Sembunyi
+        //     fixOrigin: false,
+        //     isMonster: true     // <--- TANDA MONSTER
+        // },
+        // {
+        //     url: './Models/nightmare_creature_1.glb',
+        //     name: 'Ghost_Kitchen', 
+        //     position: new THREE.Vector3(650, 2, -350),
+        //     scale: new THREE.Vector3(80, 80, 80),
+        //     rotation: new THREE.Euler(0, Math.PI / 2, 0),
+
+        //     animName: 'Creature_armature|roar', 
+        //     visible: false,     // Sembunyi
+        //     fixOrigin: false,
+        //     isMonster: true     // <--- TANDA MONSTER
+        // },
+        // {
+        //     url: './Models/nightmare_creature_1.glb',
+        //     name: 'Ghost_Corridor_Chasing', 
+        //     position: new THREE.Vector3(2480, 20, 20),
+        //     scale: new THREE.Vector3(80, 80, 80),
+        //     rotation: new THREE.Euler(0, 0, 0),
+
+        //     animName: 'Creature_armature|crawl', 
+        //     visible: false,     // Sembunyi
+        //     fixOrigin: false,
+        //     isMonster: true     // <--- TANDA MONSTER
+        // },
     ];
 
     modelsToLoad.forEach(cfg => {
@@ -195,7 +225,7 @@ export function _loadModels(world, state) {
             (gltf) => {
                 const model = gltf.scene;
                 const pivotGroup = new THREE.Group();
-                
+
                 // Gunakan nama khusus dari config jika ada, jika tidak pakai nama file
                 pivotGroup.name = cfg.name || cfg.url.split('/').pop().replace('.glb', '');
 
@@ -212,7 +242,7 @@ export function _loadModels(world, state) {
                     model.position.z = -center.z;
                     model.position.y = -box.min.y;
                 }
-                
+
                 // --- 2. LOGIKA MONSTER TAGGING (BARU) ---
                 // Ini kuncinya agar Collision nanti bisa bedakan Hantu vs Tembok
                 if (cfg.isMonster) {
@@ -221,7 +251,7 @@ export function _loadModels(world, state) {
                 } else {
                     // Kalau bangunan, selalu cek collision
                     pivotGroup.userData.isMonster = false;
-                    pivotGroup.userData.checkCollision = true; 
+                    pivotGroup.userData.checkCollision = true;
                 }
 
                 // Apply Posisi & Rotasi
@@ -242,7 +272,6 @@ export function _loadModels(world, state) {
                     isDraggable: true
                 });
 
-                // Apply Animasi
                 if (gltf.animations && gltf.animations.length > 0) {
                     pivotGroup.animations = gltf.animations;
 
@@ -255,39 +284,77 @@ export function _loadModels(world, state) {
                             const action = pivotGroup.mixer.clipAction(clip);
                             action.play();
                             pivotGroup.currentAction = action;
-                            console.log(`[ANIMATION] ${pivotGroup.name} playing: ${targetAnim}`);
-                        } else {
-                            console.warn(`Animasi '${targetAnim}' tidak ditemukan pada ${pivotGroup.name}`);
                         }
                     }
                 }
 
-                model.traverse((node) => {
-                    if (!node.name) {
-                        if (node.isMesh) node.name = `${pivotGroup.name}_mesh_${node.uuid.substring(0, 4)}`;
-                        else node.name = `${pivotGroup.name}_node_${node.uuid.substring(0, 4)}`;
-                    }
-                    
-                    state.addObject(node, { isSelectable: true, isDraggable: true });
-                    
-                    if (node.isMesh) {
-                        node.castShadow = true;
-                        node.receiveShadow = true;
-                        node.frustumCulled = false; 
+                const manualGlassList = [];
 
-                        // --- [2] GENERATE BVH (HANYA UNTUK ENVIRONMENT) ---
-                        // Jika ini BUKAN monster (berarti dinding/lantai/kasur),
-                        // kita buatkan struktur data BVH agar raycaster cepat.
-                        
-                        if (!cfg.isMonster) {
-                            // Cek apakah geometry valid
-                            if (node.geometry) {
-                                // Perintah membuat index. Ini agak berat di awal (loading),
-                                // tapi membuat game super ringan setelahnya.
-                                node.geometry.computeBoundsTree();
-                            }
+                model.traverse((node) => {
+                    // --- 1. SETUP VISUAL (KHUSUS MESH) ---
+                    // Group tidak punya material/geometry, jadi jangan diproses disini
+                    if (node.isMesh) {
+                        const isManualGlass = manualGlassList.includes(node.name);
+                        const isPhysicalGlass = (node.material.opacity < 1.0) ||
+                            (node.material.transmission && node.material.transmission > 0) ||
+                            (node.material.transparent === true);
+                        const isNameGlass = node.name.toLowerCase().includes('glass') ||
+                            node.name.toLowerCase().includes('window');
+
+                        if (isManualGlass || isPhysicalGlass || isNameGlass) {
+                            node.castShadow = false;
+                            node.receiveShadow = true;
+                            node.material.transparent = true;
+                            node.material.side = THREE.DoubleSide;
+                            node.material.depthWrite = false;
+                        } else {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            node.material.side = THREE.FrontSide;
+                            node.material.shadowSide = THREE.DoubleSide;
                         }
-                    } 
+
+                        node.frustumCulled = false;
+
+                        if (!cfg.isMonster && node.geometry) {
+                            node.geometry.computeBoundsTree();
+                        }
+                    }
+
+                    // --- 2. LOGIC SELEKSI (MESH & GROUP) ---
+                    // Kita jalankan logic ini jika node adalah Mesh ATAU Group yang punya anak
+
+                    if (true) { // (ENABLE_CHILD_SELECTION)
+
+                        // KASUS A: MESH (Punya Geometri -> Bisa difilter pakai Radius)
+                        if (node.isMesh && node.geometry) {
+                            if (!node.geometry.boundingSphere) {
+                                node.geometry.computeBoundingSphere();
+                            }
+
+                            const radius = node.geometry.boundingSphere.radius;
+                            const MIN_SIZE_TO_SELECT = 2.0;
+                            const isImportant = node.name.toLowerCase().includes('door') ||
+                                node.name.toLowerCase().includes('key') ||
+                                node.name.toLowerCase().includes('switch');
+
+                            if (radius > MIN_SIZE_TO_SELECT || isImportant) {
+                                state.addObject(node, { isSelectable: true, isDraggable: true });
+                            }
+
+                            // Matikan auto update matrix untuk mesh statis (Optimasi)
+                            // if (!cfg.isMonster && !node.name.includes('Door')) {
+                            //    node.matrixAutoUpdate = false;
+                            //    node.updateMatrix();
+                            // }
+                        }
+
+                        // KASUS B: GROUP/CONTAINER (Gak punya Geometri -> Langsung Add)
+                        // Ini yang bikin "Object 3D" bisa diklik
+                        else if (node.children.length > 0) {
+                            state.addObject(node, { isSelectable: true, isDraggable: true });
+                        }
+                    }
                 });
             },
             undefined,
