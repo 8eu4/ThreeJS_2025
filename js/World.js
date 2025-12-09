@@ -13,7 +13,10 @@ export class World {
         // Kamera di-init di sini, tapi nanti "diambil" oleh CameraManager
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
 
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            logarithmicDepthBuffer: true // BIAR GAK KEDIP SAAT MESIN TUMPUK
+        });
         this.clock = new THREE.Clock();
 
         // Kontrol Gizmo (Tetap di sini atau pindah ke UI, tapi biarkan dulu)
@@ -63,6 +66,8 @@ export class World {
 
         window.addEventListener('resize', () => this.onWindowResize());
         this.renderer.domElement.addEventListener('click', (e) => this.onCanvasClick(e));
+
+
     }
 
     onWindowResize() {
@@ -72,7 +77,7 @@ export class World {
     }
     onCanvasClick(event) {
         const seenUUIDs = new Set();
-        
+
         if (this.ignoreNextClick) { this.ignoreNextClick = false; return; }
         if (this.transformControls.dragging || !this.stateManager) return;
 

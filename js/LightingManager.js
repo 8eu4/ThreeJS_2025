@@ -20,12 +20,12 @@ export class LightingManager {
         // 1. Ambient
 
         // MODE HORROR (Gelap):
-        const ambientColor = 0x050510; // Biru Tua Gelap
-        const ambientIntensity = 0.5;
+        // const ambientColor = 0x050510; // Biru Tua Gelap
+        // const ambientIntensity = 0.6;
 
         // MODE DEVELOPMENT (Terang Benderang - Pakai ini kalau mau ngedit):
-        // const ambientColor = 0xffffff; // Putih
-        // const ambientIntensity = 1.0;
+        const ambientColor = 0xffffff; // Putih
+        const ambientIntensity = 1.0;
         const ambient = new THREE.AmbientLight(ambientColor, ambientIntensity);
         ambient.name = "Ambient Light";
         this.scene.add(ambient);
@@ -58,24 +58,43 @@ export class LightingManager {
     }
 
     _setupFlashlight() {
-        const flashLight = new THREE.SpotLight(0xfffdd0, 80000);
+        const flashLight = new THREE.SpotLight(0xfffdd0);
         flashLight.name = "Player Flashlight";
-        flashLight.angle = Math.PI / 4.5;
-        flashLight.penumbra = 0.5;
+        flashLight.angle = Math.PI / 6;
+        flashLight.penumbra = 0.6;
         flashLight.decay = 2;
-        flashLight.distance = 8000;
+        flashLight.distance = 100;
         flashLight.castShadow = true;
         flashLight.shadow.bias = -0.0001;
         flashLight.shadow.mapSize.width = 1024;
         flashLight.shadow.mapSize.height = 1024;
-        flashLight.position.set(25, -20, 10);
-        flashLight.target.position.set(0, 0, -1000);
+
+        flashLight.position.set(2, -1, 2);
+
+        // 2. POSISI TARGET (Di Tengah Depan Kamera)
+        // Sesuai requestmu: "ngambil posisi kamera ... ditambah vektor (0, -2, -15)"
+        flashLight.target.position.set(0, -1, -15);
 
         this.camera.add(flashLight);
         this.camera.add(flashLight.target);
 
+        // this.lights['player_flashlight'] = flashLight;
+        // flashLight.visible = false;
+
         this.lights['player_flashlight'] = flashLight;
-        flashLight.visible = false;
+        flashLight.visible = true;
+        flashLight.intensity = 0; // Mati (Gelap)
+    }
+
+    toggleFlashlight() {
+        const flashlight = this.lights['player_flashlight'];
+        if (flashlight) {
+            if (flashlight.intensity > 0) {
+                flashlight.intensity = 0; // OFF
+            } else {
+                flashlight.intensity = 1000; // ON
+            }
+        }
     }
 
     _setupRoomLights() {
@@ -88,8 +107,8 @@ export class LightingManager {
         this._createPointLight('light_Bedroom_6', "BedroomLight6", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
         this._createPointLight('light_Bedroom_7', "BedroomLight7", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
 
-        this._createPointLight('light_kitchen_1', "KitchenLight1", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
-        this._createPointLight('light_kitchen_2', "KitchenLight2", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
+        // this._createPointLight('light_kitchen_1', "KitchenLight1", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
+        // this._createPointLight('light_kitchen_2', "KitchenLight2", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
 
         // --- CORRIDOR LIGHTS ---
         this._createPointLight('light_corridor_1', "CorridorLight1", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
@@ -111,7 +130,7 @@ export class LightingManager {
             new THREE.Vector3(-32, 22, -75), // end
             "#575252",          // Warna
             1000,              // Intensitas
-            40,               // Distance
+            80,               // Distance
             Math.PI / 2,       // Angle 
             0.1,                // Penumbra 
             true
@@ -390,7 +409,7 @@ export class LightingManager {
 
             if (light.target) {
                 light.target.updateMatrixWorld(true);
-                
+
                 light.updateMatrixWorld(true);
             }
 
@@ -430,10 +449,6 @@ export class LightingManager {
         }
     }
 
-    toggleFlashlight() {
-        const flashlight = this.lights['player_flashlight'];
-        if (flashlight) flashlight.visible = !flashlight.visible;
-    }
 
     _findObjectByPrefix(nameToFind) {
         let found = undefined;

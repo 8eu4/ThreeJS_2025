@@ -8,14 +8,95 @@ export function loadInitialScene(world, state) {
     // _createLights(world, state);
     _loadModels(world, state);
 
-    _createCinematicWaypoint(world, state, "Point_A_Kasur", 
-        new THREE.Vector3(-72, 4, -37),
-        new THREE.Euler(0, 143, 0));
+    // _createCinematicWaypoint(world, state, "Point_A_Kasur",
+    //     new THREE.Vector3(-72, 4, -37),
+    //     new THREE.Euler(0, 143, 0));
 
-    _createCinematicWaypoint(world, state, "Point_B_Pintu", 
-        new THREE.Vector3(-86, 4, -21),
+    // _createCinematicWaypoint(world, state, "Point_B_Pintu",
+    //     new THREE.Vector3(-86, 4, -21),
+    //     new THREE.Euler(0, 89, 0));
+    
+        // SCENE 01
+    _createCinematicWaypoint(world, state, "Scene01_ceilling",
+        new THREE.Vector3(-65.25, 7.79, -40.55),
+        new THREE.Euler(90, 180, 0));
+    _createCinematicWaypoint(world, state, "Scene01_getup",
+        new THREE.Vector3(-65.25, 9.24, -38.57),
+        new THREE.Euler(0, 180, 0));
+    _createCinematicWaypoint(world, state, "Scene01_lookleft",
+        new THREE.Vector3(-65.25, 9.24, -38.57),
+        new THREE.Euler(0, 210, 0));
+    _createCinematicWaypoint(world, state, "Scene01_lookright",
+        new THREE.Vector3(-65.25, 9.24, -38.57),
+        new THREE.Euler(0, 150, 0));
+    _createCinematicWaypoint(world, state, "Scene01_looksidedown",
+        new THREE.Vector3(-70.45, 8.54, -40.44),
+        new THREE.Euler(-90, 90, 0));
+    _createCinematicWaypoint(world, state, "Scene01_looksideup",
+        new THREE.Vector3(-71.17, 10.91, -40.59),
+        new THREE.Euler(0, 150, 0));
+    _createCinematicWaypoint(world, state, "Scene01_gotodoor_1",
+        new THREE.Vector3(-84.53, 10.91, -22.77),
+        new THREE.Euler(0, 150, 0));
+    _createCinematicWaypoint(world, state, "Scene01_gotodoor_2",
+        new THREE.Vector3(-86, 10.91, -21),
         new THREE.Euler(0, 89, 0));
-    // _createCinematicWaypoint(world, state, "Point_C_Koridor", new THREE.Vector3(-500, 160, 350));
+
+    // SCENE02
+    _createCinematicWaypoint(world, state, "Scene02_walkoutside",
+        new THREE.Vector3(-94.75, 10.91, -21),
+        new THREE.Euler(0, 0, 0));
+    _createCinematicWaypoint(world, state, "Scene02_headslightrotate",
+        new THREE.Vector3(-94.75, 10.91, -21),
+        new THREE.Euler(0, 0, -20));
+    _createCinematicWaypoint(world, state, "Scene02_monsterwalk_m",
+        new THREE.Vector3(-82.96, 3.53, -54.34),
+        new THREE.Euler(0, -90, 0));
+    _createCinematicWaypoint(world, state, "Scene02_walktocurve",
+        new THREE.Vector3(-94.75, 10.91, -51.52),
+        new THREE.Euler(0, 0, 0));
+    _createCinematicWaypoint(world, state, "Scene02_turn",
+        new THREE.Vector3(-89.28, 10.91, -54.90),
+        new THREE.Euler(0, -90, 0));
+    _createCinematicWaypoint(world, state, "Scene02_walktokitchen",
+        new THREE.Vector3(-47.06, 10.91, -54.90),
+        new THREE.Euler(0, -90, 0));
+
+    //SCENE03
+    _createCinematicWaypoint(world, state, "Scene03_enterkitchen",
+        new THREE.Vector3(-34.65, 10.91, -54.49),
+        new THREE.Euler(0, -90, 0));
+    _createCinematicWaypoint(world, state, "Scene03_turntobottle",
+        new THREE.Vector3(-31.02, 10.91, -54.49),
+        new THREE.Euler(-16, 0, 0));
+    _createCinematicWaypoint(world, state, "Scene03_confuseright",
+        new THREE.Vector3(-31.02, 10.91, -54.49),
+        new THREE.Euler(0, -55, 0));
+    _createCinematicWaypoint(world, state, "Scene03_confuseleft",
+        new THREE.Vector3(-31.02, 10.91, -54.49),
+        new THREE.Euler(0, 72, 0));
+    _createCinematicWaypoint(world, state, "Scene03_backaway",
+        new THREE.Vector3(-35.97, 10.91, -50.41),
+        new THREE.Euler(0, 0, 0));
+    _createCinematicWaypoint(world, state, "Scene03_confuseright_2",
+        new THREE.Vector3(-35.97, 10.91, -48.18),
+        new THREE.Euler(82, -20, 0));
+    _createCinematicWaypoint(world, state, "Scene03_confuse_3",
+        new THREE.Vector3(-35.97, 10.91, -48.18),
+        new THREE.Euler(0, 90, 0));
+    _createCinematicWaypoint(world, state, "Scene03_scared_1",
+        new THREE.Vector3(-33.47, 10.91, -48.18),
+        new THREE.Euler(-59, -59, 0));
+    _createCinematicWaypoint(world, state, "Scene03_scared_2",
+        new THREE.Vector3(-30.41, 10.91, -48.18),
+        new THREE.Euler(20, 54, 0));
+    _createCinematicWaypoint(world, state, "Scene03_scared_3",
+        new THREE.Vector3(-29.19, 8.81, -48.18),
+        new THREE.Euler(33, 63, 0));
+    _createCinematicWaypoint(world, state, "Scene03_scared_4",
+        new THREE.Vector3(-28.89, 5.31, -48.18),
+        new THREE.Euler(-23, 57, 0));
+
 
 }
 
@@ -24,33 +105,33 @@ function _createCinematicWaypoint(world, state, name, position, rotationDeg) {
     if (!rotationDeg) rotationDeg = new THREE.Vector3(0, 0, 0);
 
     const geometry = new THREE.BoxGeometry(2, 2, 4); // Kotak memanjang ke depan biar kelihatan arahnya
-    const material = new THREE.MeshBasicMaterial({ 
-        color: 0xffff00, 
+    const material = new THREE.MeshBasicMaterial({
+        color: 0xffff00,
         wireframe: true,
         transparent: true,
-        opacity: 0.5 
+        opacity: 0.5
     });
-    
+
     const waypoint = new THREE.Mesh(geometry, material);
     waypoint.name = name;
     waypoint.position.copy(position);
-    
+
     // KONVERSI Vektor Derajat -> Euler Radians
     waypoint.rotation.set(
         THREE.MathUtils.degToRad(rotationDeg.x),
         THREE.MathUtils.degToRad(rotationDeg.y),
         THREE.MathUtils.degToRad(rotationDeg.z)
     );
-    
-    waypoint.userData.isWaypoint = true; 
-    
+
+    waypoint.userData.isWaypoint = true;
+
     // VISUALISASI ARAH (Panah)
     // Kita tempel panah yang menunjuk ke arah "Depan" lokal kotak ini (-Z)
     const dir = new THREE.Vector3(0, 0, -1); // Arah depan karakter (-Z)
     const length = 5;
     const hex = 0x00ffff; // Cyan
     const arrowHelper = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), length, hex);
-    
+
     waypoint.add(arrowHelper);
 
     world.add(waypoint);
@@ -168,43 +249,52 @@ export function _loadModels(world, state) {
             isMonster: false // Bukan Monster
         },
 
-        // // --- 4. HANTU (ANIMASI) ---
         // {
-        //     url: './Models/nightmare_creature_1.glb',
-        //     name: 'Ghost_Corridor', 
-        //     position: new THREE.Vector3(-350, 0, -350),
-        //     scale: new THREE.Vector3(90, 90, 90),
-        //     rotation: new THREE.Euler(0, Math.PI / 2, 0),
-
-        //     animName: 'Creature_armature|walk', 
-        //     visible: false,      
-        //     fixOrigin: false,   // Hantu = Jangan Fix Origin
-        //     isMonster: true     // <--- PENTING: TANDA BAHWA INI MONSTER
-        // },
-        // {
-        //     url: './Models/nightmare_creature_1.glb',
-        //     name: 'Ghost_Kitchen_Window', 
-        //     position: new THREE.Vector3(650, 0, -580),
-        //     scale: new THREE.Vector3(80, 80, 80),
+        //     url: './Models/FullEnvironment (1).glb',
+        //     position: new THREE.Vector3(0, 0, 0),
+        //     scale: new THREE.Vector3(1, 1, 1),
         //     rotation: new THREE.Euler(0, 0, 0),
-
-        //     animName: 'Creature_armature|roar',
-        //     visible: true,     // Sembunyi
-        //     fixOrigin: false,
-        //     isMonster: true     // <--- TANDA MONSTER
+        //     fixOrigin: true, // Bangunan = Fix Origin
+        //     isMonster: false // Bukan Monster
         // },
-        // {
-        //     url: './Models/nightmare_creature_1.glb',
-        //     name: 'Ghost_Kitchen', 
-        //     position: new THREE.Vector3(650, 2, -350),
-        //     scale: new THREE.Vector3(80, 80, 80),
-        //     rotation: new THREE.Euler(0, Math.PI / 2, 0),
 
-        //     animName: 'Creature_armature|roar', 
-        //     visible: false,     // Sembunyi
-        //     fixOrigin: false,
-        //     isMonster: true     // <--- TANDA MONSTER
-        // },
+        // // --- 4. HANTU (ANIMASI) ---
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Corridor',
+            position: new THREE.Vector3(-91.31, 3.53, -54.50),
+            scale: new THREE.Vector3(5, 5, 5),
+            rotation: new THREE.Euler(0, Math.PI / 2, 0),
+
+            animName: 'Creature_armature|walk',
+            visible: true,
+            fixOrigin: false,   // Hantu = Jangan Fix Origin
+            isMonster: true     // <--- PENTING: TANDA BAHWA INI MONSTER
+        },
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Kitchen_Window',
+            position: new THREE.Vector3(-37.41, 3.53, -67.93),
+            scale: new THREE.Vector3(5, 5, 5),
+            rotation: new THREE.Euler(0, 0, 0),
+
+            animName: 'Creature_armature|roar',
+            visible: false,     // Sembunyi
+            fixOrigin: false,
+            isMonster: true     // <--- TANDA MONSTER
+        },
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Kitchen', 
+            position: new THREE.Vector3(-40.51, 3.53, -52.89),
+            scale: new THREE.Vector3(5, 5, 5),
+            rotation: new THREE.Euler(0, 64, 0),
+
+            animName: 'Creature_armature|roar', 
+            visible: false,     // Sembunyi
+            fixOrigin: false,
+            isMonster: true     // <--- TANDA MONSTER
+        },
         // {
         //     url: './Models/nightmare_creature_1.glb',
         //     name: 'Ghost_Corridor_Chasing', 
@@ -217,6 +307,16 @@ export function _loadModels(world, state) {
         //     fixOrigin: false,
         //     isMonster: true     // <--- TANDA MONSTER
         // },
+
+        {
+            url: './Models/water_bottle.glb',
+            position: new THREE.Vector3(-31.48, 8.50, -56.66),
+            scale: new THREE.Vector3(0.4, 0.4, 0.4),
+            rotation: new THREE.Euler(0, 0, 0),
+            fixOrigin: true, // Bangunan = Fix Origin
+            isMonster: false // Bukan Monster
+        }
+
     ];
 
     modelsToLoad.forEach(cfg => {
@@ -310,8 +410,31 @@ export function _loadModels(world, state) {
                         } else {
                             node.castShadow = true;
                             node.receiveShadow = true;
-                            node.material.side = THREE.FrontSide;
-                            node.material.shadowSide = THREE.DoubleSide;
+
+
+                            let isInsideKitchen = false;
+                            let parentCheck = node.parent;
+
+                            // Loop naik ke atas sampai ketemu root scene atau ketemu nama "Kitchen"
+                            while (parentCheck) {
+                                if (parentCheck.name && parentCheck.name.toLowerCase().includes('kitchen')) {
+                                    isInsideKitchen = true;
+                                    break; // Ketemu! Berhenti loop
+                                }
+                                parentCheck = parentCheck.parent;
+                            }
+
+                            if (isInsideKitchen) {
+                                node.material.side = THREE.FrontSide;       // Cuma render sisi depan
+                                node.material.shadowSide = THREE.FrontSide;
+                            } else {
+                                node.material.side = THREE.DoubleSide;      // Render bolak-balik
+                                node.material.shadowSide = THREE.DoubleSide;
+                            }
+
+                            node.material.polygonOffset = true;
+                            node.material.polygonOffsetFactor = 1;
+                            node.material.polygonOffsetUnits = 1;
                         }
 
                         node.frustumCulled = false;
@@ -324,7 +447,7 @@ export function _loadModels(world, state) {
                     // --- 2. LOGIC SELEKSI (MESH & GROUP) ---
                     // Kita jalankan logic ini jika node adalah Mesh ATAU Group yang punya anak
 
-                    if (true) { // (ENABLE_CHILD_SELECTION)
+                    if (false) { // NOTE (ENABLE_CHILD_SELECTION)
 
                         // KASUS A: MESH (Punya Geometri -> Bisa difilter pakai Radius)
                         if (node.isMesh && node.geometry) {
