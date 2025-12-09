@@ -29,48 +29,50 @@ export class StoryManager {
     }
 
     // Fungsi ini yang nanti dipanggil untuk mainkan film full
-    // async playFullMovie() {
-    //     console.log("🎬 FILM DIMULAI...");
-
-    //     // Scene 1: Bangun Tidur
-    //     await this.scene01_WakeUp();
-
-    //     await this.scene02_GetDownFromBed();
-
-    //     await this.scene03_WalkOutsideBedroom();
-
-    //     console.log("🎬 FILM SELESAI.");
-    // }
     async playFullMovie() {
-        console.log("🎬 ACTION! (Smooth Waypoint Animation)");
+        console.log("🎬 FILM DIMULAI...");
 
-        this._setCinematicMode(true);
-        this._setGuiVisibility(false);
+        // Scene 1: Bangun Tidur
+        await this.scene01_WakeUp();
 
-        // 1. POSISI AWAL (Point A)
-        // Untuk start game, biasanya memang Teleport (Instant) biar gak aneh
-        this._instantSetPosition("Point_A_Kasur");
+        //Scene 2 : Lorong Kamar Menuju Dapur
+        await this.scene02_BedroomCorridor();
 
-        // 2. BANGUN TIDUR
-        await this.blink(0.5);
-        await this._wait(1.0);
+        //Scene 3 : Dapur
+        await this.scene03_Kitchen();
 
-        // 3. JALAN KE PINTU (Point B)
-        // Bergerak halus selama 4 detik menuju posisi & rotasi Point B
-        console.log("🚶 Jalan ke Pintu...");
-        await this.playerMoveToWaypoint("Point_B_Pintu", 4.0);
-
-        await this._wait(0.5);
-
-        // 4. JALAN KE KORIDOR (Point C) - Contoh jika ada
-        // console.log("🚶 Ke Koridor...");
-        // await this.playerMoveToWaypoint("Point_C_Koridor", 3.0);
-
-        console.log("🎬 CUT! Scene Selesai.");
-        this._setCinematicMode(false);
-        this._setGuiVisibility(true);
-        this.cameraManager.setMode('FPS');
+        console.log("🎬 FILM SELESAI.");
     }
+    // async playFullMovie() {
+    //     console.log("🎬 ACTION! (Smooth Waypoint Animation)");
+
+    //     this._setCinematicMode(true);
+    //     this._setGuiVisibility(false);
+
+    //     // 1. POSISI AWAL (Point A)
+    //     // Untuk start game, biasanya memang Teleport (Instant) biar gak aneh
+    //     this._instantSetPosition("Point_A_Kasur");
+
+    //     // 2. BANGUN TIDUR
+    //     await this.blink(0.5);
+    //     await this._wait(1.0);
+
+    //     // 3. JALAN KE PINTU (Point B)
+    //     // Bergerak halus selama 4 detik menuju posisi & rotasi Point B
+    //     console.log("🚶 Jalan ke Pintu...");
+    //     await this.playerMoveToWaypoint("Point_B_Pintu", 4.0);
+
+    //     await this._wait(0.5);
+
+    //     // 4. JALAN KE KORIDOR (Point C) - Contoh jika ada
+    //     // console.log("🚶 Ke Koridor...");
+    //     // await this.playerMoveToWaypoint("Point_C_Koridor", 3.0);
+
+    //     console.log("🎬 CUT! Scene Selesai.");
+    //     this._setCinematicMode(false);
+    //     this._setGuiVisibility(true);
+    //     this.cameraManager.setMode('FPS');
+    // }
 
     _instantSetPosition(waypointName) {
         const waypoint = this.scene.getObjectByName(waypointName);
@@ -82,13 +84,13 @@ export class StoryManager {
         }
     }
 
-    playerMoveToWaypoint(waypointName, duration) {
+    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut") {
         return new Promise(resolve => {
             const waypoint = this.scene.getObjectByName(waypointName);
-            
+
             if (!waypoint) {
                 console.error(`❌ Waypoint '${waypointName}' tidak ditemukan!`);
-                resolve(); 
+                resolve();
                 return;
             }
 
@@ -103,9 +105,9 @@ export class StoryManager {
             const targetRotZ = waypoint.rotation.z; // Leher (Miring)
 
             // GSAP Timeline untuk sinkronisasi semua gerakan
-            const tl = gsap.timeline({ 
+            const tl = gsap.timeline({
                 onComplete: resolve,
-                defaults: { ease: "power2.inOut" } // Gerakan mulus (Lambat-Cepat-Lambat)
+                defaults: { ease: easeType } // Gerakan mulus (Lambat-Cepat-Lambat)
             });
 
             // 1. Animasi Posisi (Badan Jalan)
@@ -135,7 +137,7 @@ export class StoryManager {
                 z: targetRotZ,
                 duration: duration
             }, 0);
-            
+
             console.log(`▶️ Moving to ${waypointName} (${duration}s)`);
         });
     }
@@ -150,15 +152,8 @@ export class StoryManager {
         this._setGuiVisibility(false); // Sembunyikan UI
         this._setCinematicMode(true);  // Matikan kontrol player
 
-        // Posisi Tidur (Di atas kasur, tinggi rendah)
-        // Asumsi kasur ada di 0,0,0. Tinggi mata saat tidur misal 60 unit.
-        this.cameraManager.cameraRig.position.set(150, 0, -20);
-        this.cameraManager.cameraRig.rotation.set(0, Math.PI, 0);
+        this._instantSetPosition("Scene01_ceilling");
 
-        // Rotasi Kamera: Menghadap Langit-langit (X = -90 derajat)
-        this.cameraManager.camera.rotation.set(Math.PI / 2, 0, 0);
-
-        // Mata Tertutup
         this.setEyeOpenness(0, 0);
 
         // 2. ACTION!
@@ -179,250 +174,149 @@ export class StoryManager {
         this.setEyeOpenness(1.0, 1.5);
         await this._wait(1.0);
 
-        // Fase: Bangun Duduk (Sit Up)
         console.log("Bangun duduk...");
 
-        // Animasi Paralel: Rotasi Kepala (Ke depan) & Badan Naik (Duduk)
-        const sitUpDuration = 3.0;
+        await this.playerMoveToWaypoint("Scene01_getup", 3.0);
+        await this.playerMoveToWaypoint("Scene01_lookleft", 1.0);
+        await this.playerMoveToWaypoint("Scene01_lookright", 2.0);
+        await this.playerMoveToWaypoint("Scene01_getup", 1.0);
 
-        // 1. Kepala menunduk ke depan (X: 0)
-        this._tweenCameraRotation(0, 0, 0, sitUpDuration);
+        this._blinkSequence();
 
-        // 2. Badan naik dari posisi tidur (60) ke posisi duduk/berdiri (130/160)
-        // Kita gunakan tween posisi Rig Y
-        gsap.to(this.cameraManager.cameraRig.position, {
-            y: 145, // Tinggi berdiri (playerHeight)
-            duration: sitUpDuration,
-            ease: "power2.inOut"
-        });
+        await this.playerMoveToWaypoint("Scene01_looksidedown", 3.0);
+        await this.playerMoveToWaypoint("Scene01_looksideup", 2.0);
+        await this.playerMoveToWaypoint("Scene01_gotodoor_1", 6.0, "none");
+        await this.playerMoveToWaypoint("Scene01_gotodoor_2", 1.0, "none");
 
-        await this._wait(sitUpDuration + 0.5);
+        await this.animateDoor("Door_Bedroom", 90, 2.0);
 
-        const lookLeftDuration = 2.0;
-
-        this._tweenCameraRotation(0, Math.PI / 10, 0, lookLeftDuration);
-
-        gsap.to(this.cameraManager.cameraRig.position, {
-            y: 145, // Tinggi berdiri (playerHeight)
-            duration: lookLeftDuration,
-            ease: "power2.inOut"
-        });
-
-        await this._wait(lookLeftDuration + 0.5);
-
-        const lookRightDuration = 2.0;
-
-        this._tweenCameraRotation(0, -Math.PI / 10, 0, lookRightDuration);
-
-        gsap.to(this.cameraManager.cameraRig.position, {
-            y: 145, // Tinggi berdiri (playerHeight)
-            duration: lookRightDuration,
-            ease: "power2.inOut"
-        });
-
-        await this._wait(lookRightDuration + 0.5);
-
-
-        const lookFrontDuration = 1.0;
-
-        this._tweenCameraRotation(0, 0, 0, lookFrontDuration);
-
-        gsap.to(this.cameraManager.cameraRig.position, {
-            y: 145, // Tinggi berdiri (playerHeight)
-            duration: lookFrontDuration,
-            ease: "power2.inOut"
-        });
-
-        await this._wait(lookFrontDuration + 0.5);
 
 
         // Fase: Selesai
         console.log("Scene 1 Selesai. Player Control Active.");
-        this._setGuiVisibility(true); // Munculkan UI lagi
+        this._setGuiVisibility(false); // Munculkan UI lagi
         this._setCinematicMode(false); // Matikan mode cinematic
 
         // PENTING: Pindah ke FPS agar fisika & collision aktif kembali
     }
     // scene02 --> Turun dari kasur dan jalan ke pintu kamar
     // jika posisi kamera menalanjutkan scene sebelumnya, tidak perlu define lagi posisi awal kamera
-    async scene02_GetDownFromBed() {
-        console.log("--- Scene 2: Get Down From Bed ---");
+    async scene02_BedroomCorridor() {
+        console.log("--- Scene 2: Bedroom Corridor ---");
 
         // 1. SETUP AWAL
         this._setGuiVisibility(false); // Sembunyikan UI
         this._setCinematicMode(true);  // Matikan kontrol player
 
-        await this._wait(0);
-
-        // --- ACTION 1: GESER KE PINGGIR KASUR (KIRI) ---
-        // Badan geser kiri, Kepala noleh kiri + nunduk (lihat lantai)
-        console.log("Geser ke pinggir kasur...");
-
-        const shiftDuration = 2.0;
-
-        await Promise.all([
-            // A. Badan: Geser X ke kiri (dari 150 ke 90)
-            this._tweenRigPosition(100, null, null, shiftDuration),
-
-            // B. Kepala: Kombinasi Noleh Kiri (Y) dan Nunduk (X)
-            // Pitch (X): -0.6 (Nunduk lihat bawah)
-            // Yaw (Y): 0.8 (Noleh Kiri)
-            // Roll (Z): 0 (Netral) atau 0.1 (Miring dikit)
-            this._tweenCameraRotation(-Math.PI / 4, -Math.PI / 2, 0, shiftDuration)
+        await this.runParallel([
+            this.playerMoveToWaypoint("Scene02_walkoutside", 3),
+            this.moveMonsterTo("Ghost_Corridor", "Scene02_monsterwalk_m", 6),
+            this._waitAndRun(3, () => this._blinkSequence()),
         ]);
 
-        await this._wait(0.5); // Pause sebentar di pinggir kasur
+        // await this.playerMoveToWaypoint("Scene02_headslightrotate", 1);
+        // await this.playerMoveToWaypoint("Scene02_walkoutside", 1);
+        await this.setMonsterVisibility("Ghost_Corridor", false);
 
-        // --- ACTION 2: TURUN & BERDIRI ---
-        // Badan naik (berdiri), Kepala tegak (lihat depan)
-        console.log("Berdiri...");
+        await this.runParallel([
+            this.playerMoveToWaypoint("Scene02_walktocurve", 10, "none"),
+            this._waitAndRun(3, () => this.blink(1)),
+        ])
+        await this.playerMoveToWaypoint("Scene02_turn", 2, "none");
 
-        const standDuration = 2.5;
+        await this.runParallel([
+            this.playerMoveToWaypoint("Scene02_walktokitchen", 10, "none"),
+            this._waitAndRun(3, () => this._blinkSequence()),
 
-        await Promise.all([
-            // A. Badan: Naik ke tinggi berdiri (160) dan maju sedikit menjauhi kasur (Z ke 0)
-            this._tweenRigPosition(null, 160, null, standDuration),
+        ])
 
-            // B. Kepala: Reset pandangan ke depan (0,0,0)
-            // Ini akan menciptakan efek "Mendongak" saat badan naik
-            this._tweenCameraRotation(0, -Math.PI / 2, 0, standDuration),
-        ]);
-
-        // --- SELESAI ---
-        console.log("Scene 2 Selesai.");
-        // await this._handoverToPlayer();
-        // PENTING: Sinkronisasi rotasi Rig sebelum serahkan ke FPS
-        // Karena tadi kita memutar KAMERA (Y=0.8), tapi Rig masih lurus (Y=0).
-        // Saat masuk FPS, kita ingin arah badan ikut arah kepala terakhir atau reset lurus.
-        // Di sini kita sudah reset kamera ke 0,0,0 jadi aman (menghadap depan Rig).
+        await this.animateDoor("Door_ToKitchen", 90, 2.0)
 
         // this._setCinematicMode(false);
         // this._setGuiVisibility(true);
         // this.cameraManager.setMode('FPS');
     }
 
-    async scene03_WalkOutsideBedroom() {
-        console.log("--- Scene 3: Walk Outside Started ---");
+    async scene03_Kitchen() {
+        console.log("--- Scene 3: Kitchen ---");
 
-        // 1. SETUP (Lanjutan dari Scene 2)
-        this._setGuiVisibility(false);
+        // 1. SETUP AWAL
+        this._setGuiVisibility(false); // Sembunyikan UI
+        this._setCinematicMode(true);  // Matikan kontrol player
+        await this.playerMoveToWaypoint("Scene03_enterkitchen", 4);
 
-        // --- ACTION 1: STEP OUT (Maju dikit dari kasur) ---
-        console.log("Maju & Lirik...");
+        await this.runParallel([
+            this.animateDoor("Door_ToKitchen", 0, 1),
+            this.playerMoveToWaypoint("Scene03_turntobottle", 3),
+        ])
 
-        const stepOutDuration = 3.0;
+        await this.playerMoveToWaypoint("Scene03_confuseright", 1);
+        await this.playerMoveToWaypoint("Scene03_confuseleft", 1);
+        await this._wait(1.5);
+        await this.playerMoveToWaypoint("Scene03_backaway", 5);
 
-        await Promise.all([
-            // Badan maju menjauhi kasur (Z: -30 -> 30)
-            this._tweenRigPosition(30, null, null, stepOutDuration),
-
-            // Kepala menoleh kiri 45 derajat (mencari pintu)
-            this._tweenCameraRotation(0, -Math.PI / 4, 0, stepOutDuration)
+        await this.runParallel([
+            this._setLightState("light_kitchen_1", false),
+            this._setLightState("light_kitchen_2", false),
+            this._waitAndRun(0.5, () => this.playerMoveToWaypoint("Scene03_confuseright_2", 1, "none")),
         ]);
 
-        // --- ACTION 2: TURN & WALK (Putar Badan ke Arah Pintu + Jalan) ---
-        console.log("Belok & Jalan ke Pintu...");
 
-        const walkDuration = 5;
-
-        // Target Lokasi Pintu: (X=350, Z=350)
-        // Posisi Awal Badan: (X=0, Z=30)
-        // Arah Hadap Badan Saat Ini: Math.PI (180 derajat / Menghadap Belakang Z-)
-
-        // Kita ingin badan menghadap ke titik tujuan.
-        // Secara matematika, arah dari (0,30) ke (350,350) adalah sekitar 45 derajat (Serong Kanan Bawah).
-        // Tapi dalam rotasi Y Three.js:
-        // 0 = -Z (Utara)
-        // Math.PI = +Z (Selatan)
-        // Math.PI/2 = -X (Timur/Kanan) 
-        // -Math.PI/2 = +X (Barat/Kiri)
-
-        // Mari kita coba putar badan menghadap SERONG KIRI BELAKANG (Arah Pintu).
-        // Sudut Target: Math.PI + (Math.PI / 4)  = 225 derajat (Serong Kiri Bawah)
-        // Atau dalam radian sekitar 3.9 atau -2.3
-
-        const targetBodyRotation = (Math.PI / 2) + (Math.PI / 6);
-
-        await Promise.all([
-            // 1. Geser Posisi ke Depan Pintu
-            this._tweenRigPosition(-230, null, 350, walkDuration),
-
-            // 2. PUTAR BADAN MENGHADAP TUJUAN
-            // Ini kunci agar tidak terlihat strafing (jalan miring)
-            this._tweenRigRotation(null, targetBodyRotation, null, walkDuration),
-
-            // 3. RESET KEPALA KE LURUS
-            // Karena badan sudah berputar ke arah pintu, kepala harus kembali lurus (0)
-            // agar pandangan tetap fokus ke depan.
-            this._tweenCameraRotation(0, 0, 0, walkDuration)
+        await this.runParallel([
+            this.playerMoveToWaypoint("Scene03_confuse_3", 2, "none"),
+            // this._setLightState("light_kitchen_window", true),
+            this._waitAndRun(1.5, () => this.playerMoveToWaypoint("Scene03_backaway", 0.5, "none")),
+            this._waitAndRun(1.6, () => this.setMonsterVisibility("Ghost_Kitchen_Window", true)),
+            this._waitAndRun(3, () => this.playerMoveToWaypoint("Scene03_scared_1", 0.5, "power2.out")),
+            this._waitAndRun(3.2, () => this.setEyeOpenness(0, 0.5)),
         ]);
 
-        // --- ACTION 3: ARRIVAL (Luruskan Badan Tepat Depan Pintu) ---
-        console.log("Sampai depan pintu.");
+        await this._wait(2);
 
-        const alignDuration = 2.0;
-
-        // Misal pintu menghadap sumbu X, kita luruskan badan 90 derajat
-        const finalRotation = Math.PI / 2; // Menghadap Kiri (90 derajat) atau sesuaikan
-
-        await Promise.all([
-            // Maju dikit lagi (X=400)
-            this._tweenRigPosition(-230, null, 350, alignDuration),
-
-            // Luruskan badan tegak lurus pintu
-            this._tweenRigRotation(null, finalRotation, null, alignDuration)
+        await this.runParallel([
+            this.setMonsterVisibility("Ghost_Kitchen_Window", false),
+            this.setMonsterVisibility("Ghost_Kitchen", true),
+            this.setEyeOpenness(1, 2),
+            this._waitAndRun(2.5, () => this.playerMoveToWaypoint("Scene03_scared_2", 3, "power2.in")),
         ]);
 
-        console.log("Scene 3 Selesai.");
+        await this.runParallel([
+            this.playMonsterAnimation("Ghost_Kitchen", "Creature_armature|bite", 1),
+            this.playerMoveToWaypoint("Scene03_scared_3", 0.5, "power2.out"),
+            this._waitAndRun(0.5, () => this.playMonsterAnimation("Ghost_Kitchen", "Creature_armature|attack_2", 1)),
+            this._waitAndRun(0.7, () => this.playerMoveToWaypoint("Scene03_scared_4", 1.5, "power2.in")),
+            // this._waitAndRun(1, () => this.setEyeOpenness(0, 1)),
+            
+        ]);
 
-        // // Stop di sini untuk scene selanjutnya
-        // this._setGuiVisibility(true);
-        // this._setCinematicMode(false);
-        // this.cameraManager.setMode('FPS');
     }
 
-    // =========================================================
-    // 🛠️ BAGIAN 2: DIRECTOR TOOLS (ALAT BANTU)
-    // Fungsi-fungsi teknis untuk menggerakkan aktor/kamera
-    // =========================================================
 
-    // Helper Cepat: Kedip (Blink)
 
-    // _handoverToPlayer() {
-    //     console.log("⏳ Menunggu klik pemain untuk mulai...");
-    //     return new Promise(resolve => {
-    //         // Kita buat listener sekali pakai
-    //         const onClick = () => {
-    //             window.removeEventListener('click', onClick);
+    animateDoor(doorName, targetAngleDeg, duration) {
+        return new Promise(resolve => {
+            // 1. Cari objek pintu di dalam scene (Recursive search)
+            const door = this.scene.getObjectByName(doorName);
 
-    //             // EKSEKUSI DI SINI (Di dalam event click agar Browser mengizinkan)
-    //             this._setGuiVisibility(true); 
-    //             this._setCinematicMode(false); 
-    //             this.cameraManager.setMode('FPS');
+            if (!door) {
+                console.warn(`⚠️ Pintu dengan nama '${doorName}' tidak ditemukan! Cek nama di Blender/Scene Graph.`);
+                resolve(); // Tetap resolve biar urutan cerita tidak macet
+                return;
+            }
 
-    //             console.log("✅ Kendali diserahkan ke pemain.");
-    //             resolve();
-    //         };
+            console.log(`🚪 Menggerakkan pintu: ${doorName} ke ${targetAngleDeg} derajat`);
 
-    //         // Pasang jebakan klik di window
-    //         window.addEventListener('click', onClick);
-    //     });
-    // }
+            // 2. Konversi Derajat ke Radian (Three.js pakai Radian)
+            const targetRad = THREE.MathUtils.degToRad(targetAngleDeg);
 
-    _setGuiVisibility(visible) {
-        const displayStyle = visible ? 'block' : 'none';
-
-        // 1. Panel Kanan (Lil-GUI)
-        const rightPanel = document.querySelector('.lil-gui');
-        if (rightPanel) {
-            rightPanel.style.display = displayStyle;
-        }
-
-        // 2. Panel Kiri (Hierarchy)
-        const leftPanel = document.getElementById('hierarchy-panel');
-        if (leftPanel) {
-            leftPanel.style.display = displayStyle;
-        }
+            // 3. Animasi Rotasi Sumbu Y (Engsel biasanya sumbu Y)
+            gsap.to(door.rotation, {
+                y: targetRad,
+                duration: duration,
+                ease: "power2.inOut", // Gerakan pintu yang natural (lambat-cepat-lambat)
+                onComplete: resolve
+            });
+        });
     }
 
     // --- FUNGSI UTAMA: ANIMASI MATA ---
@@ -658,10 +552,147 @@ export class StoryManager {
         });
     }
 
+    setMonsterVisibility(monsterName, isVisible) {
+        const monster = this.scene.getObjectByName(monsterName);
+        if (monster) {
+            monster.visible = isVisible;
+            console.log(`👻 Monster '${monsterName}' visibility: ${isVisible}`);
+        } else {
+            console.warn(`⚠️ Monster '${monsterName}' tidak ditemukan!`);
+        }
+    }
+
+    // 2. MENGGERAKKAN MONSTER (UPDATED: Support Waypoint Name)
+    moveMonsterTo(monsterName, targetData, duration) {
+        return new Promise(resolve => {
+            const monster = this.scene.getObjectByName(monsterName);
+            if (!monster) {
+                console.warn(`⚠️ Monster '${monsterName}' tidak ditemukan!`);
+                resolve();
+                return;
+            }
+
+            // --- LOGIKA BARU: DETEKSI TIPE TARGET ---
+            let targetPosition = new THREE.Vector3();
+
+            if (typeof targetData === 'string') {
+                // Jika inputnya String, cari objek Waypoint-nya dulu
+                const waypoint = this.scene.getObjectByName(targetData);
+                if (waypoint) {
+                    targetPosition.copy(waypoint.position);
+                } else {
+                    console.error(`❌ Waypoint Monster '${targetData}' tidak ditemukan!`);
+                    resolve();
+                    return;
+                }
+            } else if (targetData.isVector3 || (targetData.x !== undefined)) {
+                // Jika inputnya sudah Vector3 atau object {x,y,z}
+                targetPosition.copy(targetData);
+            } else {
+                console.error("❌ Format target posisi salah. Gunakan Nama Waypoint (String) atau Vector3.");
+                resolve();
+                return;
+            }
+
+            console.log(`🧟 Monster '${monsterName}' berjalan ke:`, targetPosition);
+
+            // Animasi Posisi
+            gsap.to(monster.position, {
+                x: targetPosition.x,
+                y: targetPosition.y,
+                z: targetPosition.z,
+                duration: duration,
+                ease: "linear",
+                onUpdate: () => {
+                    // Opsional: Agar monster selalu menghadap ke tujuan selagi jalan
+                    // monster.lookAt(targetPosition); 
+                },
+                onComplete: resolve
+            });
+
+            // Putar badan menghadap tujuan (Instan di awal jalan)
+            monster.lookAt(targetPosition.x, monster.position.y, targetPosition.z);
+        });
+    }
+
+    playMonsterAnimation(monsterName, animName, transitionDuration = 0.5) {
+        const monster = this.scene.getObjectByName(monsterName);
+
+        if (!monster || !monster.mixer || !monster.animations) {
+            console.warn(`⚠️ Monster '${monsterName}' tidak memiliki mixer/animasi.`);
+            return;
+        }
+
+        const newClip = monster.animations.find(a => a.name === animName);
+        if (!newClip) {
+            console.warn(`⚠️ Animasi '${animName}' tidak ditemukan pada ${monsterName}.`);
+            // List animasi yang tersedia untuk debugging
+            console.log("Daftar Animasi:", monster.animations.map(a => a.name));
+            return;
+        }
+
+        const newAction = monster.mixer.clipAction(newClip);
+        const oldAction = monster.currentAction;
+
+        if (oldAction === newAction) return; // Animasi yang sama sedang jalan
+
+        console.log(`🎬 Monster ${monsterName} switch anim: ${animName}`);
+
+        // Setup Animasi Baru
+        newAction.reset();
+        newAction.play();
+
+        // Transisi Halus (Crossfade)
+        if (oldAction) {
+            oldAction.crossFadeTo(newAction, transitionDuration, true);
+        }
+
+        // Simpan referensi action sekarang
+        monster.currentAction = newAction;
+    }
+
     // --- C. UTILITIES ---
 
     // Fungsi Menunggu (Penting untuk timing cerita)
     _wait(seconds) {
         return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+    }
+
+    _setGuiVisibility(visible) {
+        const displayStyle = visible ? 'block' : 'none';
+
+        // 1. Panel Kanan (Lil-GUI)
+        const rightPanel = document.querySelector('.lil-gui');
+        if (rightPanel) {
+            rightPanel.style.display = displayStyle;
+        }
+
+        // 2. Panel Kiri (Hierarchy)
+        const leftPanel = document.getElementById('hierarchy-panel');
+        if (leftPanel) {
+            leftPanel.style.display = displayStyle;
+        }
+    }
+
+    async runParallel(actions) {
+        console.log(`⚡ Menjalankan ${actions.length} aksi secara paralel...`);
+
+        await Promise.all(actions);
+
+        console.log("✅ Semua aksi paralel selesai.");
+    }
+
+    // --- UTILITIES: DELAYED ACTION ---
+    // Menjalankan fungsi aksi setelah menunggu sekian detik
+    // delay: Waktu tunggu (detik)
+    // taskFunction: Arrow function yang berisi perintah (Contoh: () => this.moveMonsterTo(...))
+    async _waitAndRun(delay, taskFunction) {
+        if (delay > 0) {
+            // console.log(`⏳ Delay ${delay}s...`); // Uncomment jika ingin log
+            await this._wait(delay);
+        }
+
+        // Jalankan tugasnya sekarang
+        await taskFunction();
     }
 }
