@@ -23,16 +23,16 @@ export class CameraManager {
         this.scene = world.scene;
         this.domElement = world.renderer.domElement;
 
-        // --- KONFIGURASI SKALA ---
-        this.playerHeight = 160.0;
-        this.orbitMoveSpeed = 100.0;
-        this.fpsMoveSpeed = 100.0;
-        this.runMultiplier = 2.0;
-        this.gravity = 4000.0;
-        this.jumpForce = 1500.0;
+        // NOTE --- KONFIGURASI SKALA ---
+        this.orbitMoveSpeed = 40.0;
 
-        // Jarak aman tabrakan (0.8 meter * 100 skala)
-        this.collisionPadding = 80.0;
+        this.playerHeight = 8.0;
+        this.fpsMoveSpeed = 10.0;
+        this.runMultiplier = 2.0;
+        this.gravity = 15.0;
+        this.jumpForce = 20.0;
+        this.collisionPadding = 0.5; // NOTE gemuk kurusnya
+        this.stepHeight = 0.5;
 
         // --- SETUP RIG ---
         this.cameraRig = new THREE.Group();
@@ -43,10 +43,13 @@ export class CameraManager {
 
         this.scene.add(this.cameraRig);
         this.cameraRig.add(this.cameraShakeGroup);
-        // Kamera di luar (Orbit Mode Default)
+
+        this._createDebugBody();
 
         // --- CONTROLS ---
         this.activeMode = 'ORBIT';
+
+        this.scene.add(this.camera);
 
         // A. ORBIT
         this.orbitControls = new OrbitControls(this.camera, this.domElement);
@@ -55,20 +58,29 @@ export class CameraManager {
         this.orbitControls.dampingFactor = 0.1;
         this.orbitControls.screenSpacePanning = true;
 
+        this.camera.updateMatrixWorld(); // Pastikan posisi kamera terupdate
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+        this.orbitControls.target.copy(this.camera.position).add(forward.multiplyScalar(1.0));
+        this.orbitControls.update();
+
         // B. FPS
         this.fpsControls = new PointerLockControls(this.camera, this.domElement);
+
+        document.addEventListener('click', (event) => {
+            if (this.activeMode === 'FPS' && !this.fpsControls.isLocked) {
+                // Pastikan bukan klik tombol UI
+                if (event.target === this.domElement) {
+                    this.fpsControls.lock();
+                }
+            }
+        });
 
         // --- PHYSICS VARS ---
         this.velocity = new THREE.Vector3();
         this.currentMoveVelocity = new THREE.Vector3(0, 0, 0); // Velocity Horizontal (X/Z)
 
         // Input Flags
-        this.moveForward = false;
-        this.moveBackward = false;
-        this.moveLeft = false;
-        this.moveRight = false;
-        this.moveUp = false;
-        this.moveDown = false;
+        this._resetInputs();
 
         // Roll Vars
         this.isLeaningLeft = false;
@@ -77,6 +89,7 @@ export class CameraManager {
 
         this.isRunning = false;
         this.canJump = false;
+        this.isJumping = false;
 
         // Helper Vectors
         this.vecDir = new THREE.Vector3();
@@ -89,6 +102,38 @@ export class CameraManager {
 
         this._setupInputs();
     }
+    _createDebugBody() {
+        const old = this.cameraRig.getObjectByName("Debug_Player_Cylinder");
+        if (old) this.cameraRig.remove(old);
+
+        const geometry = new THREE.CylinderGeometry(
+            this.collisionPadding,
+            this.collisionPadding,
+            this.playerHeight,
+            16
+        );
+
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            wireframe: true,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.5,
+            depthTest: false // False agar terlihat tembus tembok (X-Ray) biar gampang debug
+        });
+
+        this.debugMesh = new THREE.Mesh(geometry, material);
+        this.debugMesh.name = "Debug_Player_Cylinder";
+
+        // [PERBAIKAN POSISI]
+        // Karena cameraRig ada di KEPALA (Mata), maka badan harus turun ke BAWAH (Negative Y)
+        // Pusat cylinder ada di tengah tingginya.
+        // Jadi y = - (tinggi / 2)
+        this.debugMesh.position.y = -(this.playerHeight / 2);
+
+        this.cameraRig.add(this.debugMesh);
+    }
+
 
     _setupInputs() {
         const onKeyDown = (event) => {
@@ -115,7 +160,13 @@ export class CameraManager {
 
                 case 'Space':
                     if (this.canJump && this.activeMode === 'FPS') {
-                        this.velocity.y += this.jumpForce;
+                        // 1. Dorong ke atas
+                        this.velocity.y = this.jumpForce;
+
+                        // 2. Beritahu sistem kita sedang LOMPAT (Snap dilarang aktif)
+                        this.isJumping = true;
+
+                        // 3. Matikan izin lompat double
                         this.canJump = false;
                     }
                     break;
@@ -176,6 +227,12 @@ export class CameraManager {
     setMode(mode) {
         this._resetInputs();
 
+        this.camera.updateMatrixWorld();
+        const globalPos = new THREE.Vector3();
+        const globalQuat = new THREE.Quaternion();
+        this.camera.getWorldPosition(globalPos);
+        this.camera.getWorldQuaternion(globalQuat);
+
         if (mode === 'FPS') {
             this.activeMode = 'FPS';
             this.orbitControls.enabled = false;
@@ -183,14 +240,22 @@ export class CameraManager {
             if (document.activeElement) document.activeElement.blur();
             document.body.focus();
 
-            const currentCamPos = new THREE.Vector3();
-            this.camera.getWorldPosition(currentCamPos);
+            // 1. Pindahkan Rig ke posisi kamera terakhir
+            this.cameraRig.position.copy(globalPos);
 
-            this.cameraRig.position.copy(currentCamPos);
+            // 2. Attach kamera ke dalam Rig
             this.cameraShakeGroup.add(this.camera);
+            this.camera.position.set(0, 0, 0); // Reset posisi lokal (nempel di mata)
 
-            this.camera.position.set(0, 0, 0);
-            this.camera.rotation.set(0, 0, 0);
+            // 3. [FIX 2] Konversi Rotasi agar tidak Reset
+            // Kita pisahkan rotasi: Badan (Y) dan Kepala (X)
+            const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+            euler.setFromQuaternion(globalQuat);
+
+            this.cameraRig.rotation.y = euler.y; // Badan menghadap arah kompas yang sama
+            this.camera.rotation.x = euler.x;    // Kepala mendongak/menunduk sesuai sudut terakhir
+            this.camera.rotation.y = 0;          // Reset Y kamera lokal (karena sudah di handle Rig)
+            this.camera.rotation.z = 0;          // Reset Z (Roll)
 
             this.fpsControls.lock();
 
@@ -201,20 +266,20 @@ export class CameraManager {
             if (document.activeElement) document.activeElement.blur();
             document.body.focus();
 
-            const globalPos = new THREE.Vector3();
-            const globalQuat = new THREE.Quaternion();
-            this.camera.getWorldPosition(globalPos);
-            this.camera.getWorldQuaternion(globalQuat);
-
+            // 1. Detach kamera dari Rig, kembalikan ke Scene global
             this.scene.add(this.camera);
 
+            // 2. Set Posisi & Rotasi Global agar mulus (sama persis sebelum pindah)
             this.camera.position.copy(globalPos);
             this.camera.quaternion.copy(globalQuat);
 
+            // Reset efek miring (Roll)
             this.cameraShakeGroup.rotation.z = 0;
             this.camera.rotation.z = 0;
 
-            const forward = new THREE.Vector3(0, 0, -100).applyQuaternion(this.camera.quaternion);
+            // 3. [FIX 3] Atur Target Orbit di depan kamera
+            // Agar saat diputar, pivotnya ada di depan mata (seperti FPS view), bukan 0,0,0
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
             this.orbitControls.target.copy(this.camera.position).add(forward);
 
             this.orbitControls.enabled = true;
@@ -222,128 +287,172 @@ export class CameraManager {
         }
     }
 
+    _isValidCollider(obj) {
+        if (!obj.visible) return false;
+
+        // 1. GIZMO CHECK: Kalau cuma Garis/Titik, pasti Tembus
+        if (obj.isLine || obj.isLineSegments || obj.isPoints) return false;
+
+        // 2. PARENT CHECK: Cek silsilah keluarga
+        let curr = obj;
+        while (curr) {
+            if (curr.type === 'Scene') break;
+
+            const name = (curr.name || "").toLowerCase();
+            const type = (curr.type || "");
+
+            // DAFTAR BLACKLIST (TEMBUS)
+            if (name.includes("gizmo")) return false;
+            if (name.includes("helper")) return false;
+            if (name.includes("debug")) return false;
+            if (name.includes("transformcontrols")) return false;
+            if (type.includes("Controls")) return false;
+            if (type.includes("Helper")) return false;
+            if (curr.userData && curr.userData.isWaypoint) return false;
+
+            curr = curr.parent;
+        }
+
+        // 3. MATERIAL CHECK
+        if (obj.material) {
+            if (Array.isArray(obj.material)) {
+                if (obj.material.every(m => !m.visible || m.wireframe)) return false;
+            } else {
+                if (!obj.material.visible || obj.material.wireframe) return false;
+            }
+        }
+
+        return true;
+    }
+
     _checkWallCollision(directionVec) {
-        // --- STEP 0: FILTER DIHAPUS (OPTIMASI) ---
-        // Kita tidak lagi memfilter array objek setiap frame.
-
-        // --- TAHAP 1: SAFETY BUBBLE (OPTIMIZED) ---
-        // Gunakan 'copy' dan 'add' ke variabel temp, BUKAN clone()
-
-        const monsterRadiusSq = 14400.0; // 120^2 (Hitung manual biar hemat CPU)
-
-        // Hitung posisi masa depan tanpa bikin objek baru (new Vector3)
-        this.tempPredictionStep.copy(directionVec).multiplyScalar(10.0);
+        // --- 1. CEK MONSTER (Tetap sama) ---
+        const monsterRadiusSq = 144.0;
+        this.tempPredictionStep.copy(directionVec).multiplyScalar(5.0);
         this.tempNextPos.copy(this.cameraRig.position).add(this.tempPredictionStep);
-
-        // Kita tidak pakai Set() lagi untuk cek ganda, cukup cek langsung
-        // karena jumlah monster biasanya sedikit.
-
         const allObjects = this.state.allSelectableObjects;
 
         for (let i = 0; i < allObjects.length; i++) {
             const obj = allObjects[i];
-
-            // Cek cepat apakah ini punya potensi jadi monster (punya parent)
-            let parent = obj.parent;
+            let parent = obj;
+            let isMonster = false;
             while (parent && parent.type !== 'Scene') {
                 if (parent.userData && parent.userData.isMonster) {
-
-                    // Cek visibilitas (Optimasi: Jangan hitung jarak kalau hantu invisible)
-                    if (parent.visible) {
-                        const playerPos = this.cameraRig.position;
-
-                        // Hitung Jarak Sekarang (Tanpa objek baru)
-                        const dx = playerPos.x - parent.position.x;
-                        const dz = playerPos.z - parent.position.z;
-                        const currentDistSq = dx * dx + dz * dz;
-
-                        // Hitung Jarak Masa Depan (Tanpa objek baru)
-                        const ndx = this.tempNextPos.x - parent.position.x;
-                        const ndz = this.tempNextPos.z - parent.position.z;
-                        const nextDistSq = ndx * ndx + ndz * ndz;
-
-                        // Logika Jebakan: Hanya blokir jika mendekat ke zona bahaya
-                        if (nextDistSq < monsterRadiusSq && nextDistSq < currentDistSq) {
-                            return true;
-                        }
-                    }
-                    break; // Sudah ketemu parent monster, lanjut objek berikutnya
+                    isMonster = true;
+                    if (!parent.visible) isMonster = false;
+                    break;
                 }
                 parent = parent.parent;
             }
+            if (isMonster) {
+                const dx = this.cameraRig.position.x - parent.position.x;
+                const dz = this.cameraRig.position.z - parent.position.z;
+                const currentDistSq = dx * dx + dz * dz;
+                const ndx = this.tempNextPos.x - parent.position.x;
+                const ndz = this.tempNextPos.z - parent.position.z;
+                const nextDistSq = ndx * ndx + ndz * ndz;
+                if (nextDistSq < monsterRadiusSq && nextDistSq < currentDistSq) return true;
+            }
         }
 
-        // --- TAHAP 2: CEK RAYCASTER (OPTIMIZED) ---
+        // --- 2. CEK TEMBOK (5 LASER) ---
         const rayOffsets = [
-            this.playerHeight * 0.2,
-            this.playerHeight * 0.6,
-            this.playerHeight * 0.9
+            -this.playerHeight * 0.1, // Mata
+            -this.playerHeight * 0.3, // Leher
+            -this.playerHeight * 0.5, // Dada/Pinggang
+            -this.playerHeight * 0.7, // Paha
+            -this.playerHeight * 0.9  // Lutut
         ];
 
         this.raycaster.firstHitOnly = true;
+        this.raycaster.far = this.collisionPadding * 1.5;
 
         for (let i = 0; i < rayOffsets.length; i++) {
             const offset = rayOffsets[i];
-
-            // Recycle variabel tempRayOrigin
             this.tempRayOrigin.copy(this.cameraRig.position);
             this.tempRayOrigin.y += offset;
 
             this.raycaster.set(this.tempRayOrigin, directionVec);
 
-            if (i === 1 && this.showDebugArrow && this.debugArrow) {
-                this.debugArrow.position.copy(this.tempRayOrigin);
-                this.debugArrow.setDirection(directionVec);
-            }
-
-            // Tembak langsung ke array utama
-            const intersects = this.raycaster.intersectObjects(this.state.allSelectableObjects, true);
+            // Cek ke seluruh anak Scene
+            const intersects = this.raycaster.intersectObjects(this.scene.children, true);
 
             for (const hit of intersects) {
                 if (hit.distance > this.collisionPadding) continue;
 
-                let obj = hit.object;
+                if (!this._isValidCollider(hit.object)) continue;
 
-                // Safety Loop Traversal (Tanpa alokasi memori)
-                let depth = 0;
-                const maxDepth = 50;
-                let isMonsterFound = false;
-                let isMonsterVisible = false;
-                let isObjectVisible = true;
+                // Cek Face agar tidak nabrak garis aneh
+                if (!hit.face) continue;
 
-                let checkObj = obj;
-                while (checkObj) {
-                    depth++;
-                    if (depth > maxDepth) break;
-
-                    if (checkObj.visible === false) {
-                        isObjectVisible = false;
-                        break;
-                    }
-
-                    if (checkObj.userData?.isMonster) {
-                        isMonsterFound = true;
-                        isMonsterVisible = checkObj.visible;
-                    }
-
-                    if (checkObj.type === 'Scene') break;
-                    checkObj = checkObj.parent;
-                }
-
-                if (!isObjectVisible) continue;
-
-                if (isMonsterFound) {
-                    if (isMonsterVisible) return true;
-                    else continue;
-                }
-
-                // Default Tembok
-                return true;
+                return true; // TABRAK
             }
         }
-
-        this.raycaster.firstHitOnly = false;
         return false;
+    }
+
+    _checkFloorCollision(delta) {
+        this.raycaster.set(this.cameraRig.position, new THREE.Vector3(0, -1, 0));
+        const checkDistance = this.playerHeight + 10.0;
+        this.raycaster.far = checkDistance;
+
+        const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+
+        let groundY = -99999;
+        let foundGround = false;
+        const currentFootY = this.cameraRig.position.y - this.playerHeight;
+
+        for (const hit of intersects) {
+            if (!this._isValidCollider(hit.object)) continue;
+            if (!hit.face) continue;
+            if (hit.face.normal.y < 0.5) continue; // Abaikan dinding vertikal
+
+            const heightDiff = hit.point.y - currentFootY;
+            // Toleransi step (tangga)
+            if (heightDiff > this.stepHeight) continue;
+
+            groundY = hit.point.y;
+            foundGround = true;
+            break;
+        }
+
+        // --- UPDATE GRAVITASI ---
+        this.velocity.y -= this.gravity * delta;
+        this.cameraRig.position.y += this.velocity.y * delta;
+
+        // --- LOGIKA RESET JUMPING ---
+        // Jika velocity negatif (sedang jatuh), berarti fase naik sudah selesai.
+        // Kita matikan flag jumping agar fitur Snap boleh bekerja lagi saat mendarat nanti.
+        if (this.velocity.y < 0) {
+            this.isJumping = false;
+        }
+
+        // --- SNAP LOGIC ---
+        if (foundGround) {
+            const feetLevel = this.cameraRig.position.y - this.playerHeight;
+            const snapThreshold = 0.5; // Jarak toleransi magnet
+
+            // SYARAT SNAP (MENDARAT):
+            // 1. Kaki ada di dalam range toleransi lantai (feetLevel <= groundY + snapThreshold)
+            // 2. Kita TIDAK sedang dalam fase lompat naik (!this.isJumping)
+            // 3. Kita sedang jatuh atau diam (this.velocity.y <= 0)
+
+            if (feetLevel <= groundY + snapThreshold && !this.isJumping && this.velocity.y <= 0) {
+                // Lakukan Snap (Teleport pas ke lantai)
+                this.cameraRig.position.y = groundY + this.playerHeight;
+                this.velocity.y = 0;
+                this.canJump = true;
+            }
+            // Jika foundGround tapi velocity masih kencang (jatuh dari tinggi) atau sedang lompat,
+            // biarkan gravitasi yang menangani, jangan di-snap paksa.
+        } else {
+            // Void Safety (Jatuh ke jurang)
+            if (this.cameraRig.position.y < -500) {
+                this.cameraRig.position.y = 50;
+                this.velocity.y = 0;
+            }
+            this.canJump = false;
+        }
     }
 
     update(delta) {
@@ -438,7 +547,7 @@ export class CameraManager {
                 }
             }
 
-            // 6. GRAVITASI (TETAP SAMA)
+            // 6. GRAVITASI 
             this.velocity.y -= this.gravity * delta;
             this.cameraRig.position.y += this.velocity.y * delta;
 
@@ -447,6 +556,8 @@ export class CameraManager {
                 this.cameraRig.position.y = this.playerHeight;
                 this.canJump = true;
             }
+
+            this._checkFloorCollision(delta);
         }
     }
 }

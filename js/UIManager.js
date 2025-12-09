@@ -30,6 +30,9 @@ export class UIManager {
         this.gizmoFolder = this.gui.addFolder('Gizmo');
         this.saveLoadFolder = this.gui.addFolder('Save/Load');
 
+        this.debugFolder = this.gui.addFolder('DEBUG');
+        this.colliderHelpers = [];
+
         this.lightGuiCache = new Map();
         this.animationGuiCache = new Map();
         this.transformGuiCache = new Map();
@@ -50,13 +53,78 @@ export class UIManager {
         this._buildCameraModeGUI();
         this._buildGizmoGUI();
         this._buildSaveLoadGUI();
+        this._buildDebugGUI();
         this._initResizer();
 
         this.cameraFolder.open();
         this.gizmoFolder.open();
         this.saveLoadFolder.open();
+        this.debugFolder.open();
 
         this.buildHierarchyPanel();
+    }
+
+    _buildDebugGUI() {
+        const settings = {
+            showColliders: false,
+            showPlayerBody: true
+        };
+
+        this.debugFolder.add(settings, 'showColliders').name('Show ALL Mesh Colliders').onChange((show) => {
+            if (show) {
+                // Bersihkan dulu kalau ada sisa
+                this._clearColliderHelpers();
+
+                console.log("🔍 Scanning Scene for Meshes...");
+
+                // Traverse SELURUH SCENE
+                this.world.scene.traverse((node) => {
+                    // Kriteria Mesh yang valid untuk ditampilkan collisionnya:
+                    // 1. Harus Mesh (Punya geometri)
+                    // 2. Bukan Helper (Garis bantu)
+                    // 3. Bukan Gizmo (Panah transform)
+                    // 4. Bukan Badan Pemain (Merah)
+                    // 5. Bukan Hantu Invisible (Opsional, tapi biasanya collision hantu beda)
+
+                    if (node.isMesh) {
+                        // Filter Nama/Tipe biar gak menuhin layar sama sampah visual
+                        const isHelper = node.name.includes("Helper") || node.type.includes("Helper");
+                        const isGizmo = node.name.includes("Gizmo") || node.parent?.type === "TransformControls";
+                        const isPlayer = node.name === "Debug_Player_Cylinder";
+                        const isSky = node.name.includes("Sky"); // Kalau ada langit
+
+                        if (!isHelper && !isGizmo && !isPlayer && !isSky) {
+
+                            // Buat BoxHelper Kuning
+                            const helper = new THREE.BoxHelper(node, 0xffff00);
+                            helper.name = "Debug_Auto_Collider";
+
+                            // Masukkan ke Scene
+                            this.world.scene.add(helper);
+                            this.colliderHelpers.push(helper);
+                        }
+                    }
+                });
+                console.log(`✅ Created ${this.colliderHelpers.length} collision visualizers.`);
+
+            } else {
+                this._clearColliderHelpers();
+            }
+        });
+
+        this.debugFolder.add(settings, 'showPlayerBody').name('Show Player Body').onChange((show) => {
+            if (this.cameraManager && this.cameraManager.debugMesh) {
+                this.cameraManager.debugMesh.visible = show;
+            }
+        });
+    }
+
+    _clearColliderHelpers() {
+        this.colliderHelpers.forEach(helper => {
+            this.world.scene.remove(helper);
+            helper.dispose();
+        });
+        this.colliderHelpers = [];
     }
 
     _initResizer() {
@@ -440,8 +508,8 @@ export class UIManager {
                 }
             });
 
-        folder.add(this.cameraManager, 'fpsMoveSpeed', 100, 3000).name('FPS Speed');
-        folder.add(this.cameraManager, 'orbitMoveSpeed', 100, 2000).name('Orbit Pan Speed');
+        folder.add(this.cameraManager, 'fpsMoveSpeed', 1, 300).name('FPS Speed');
+        folder.add(this.cameraManager, 'orbitMoveSpeed', 1, 2000).name('Orbit Pan Speed');
 
         rollFolder.add(cam.rotation, 'z', -Math.PI, Math.PI).name('Roll (Z-axis)').listen();
         rollFolder.add(settings, 'resetRoll').name('Reset Roll');
