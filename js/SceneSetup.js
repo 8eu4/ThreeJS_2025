@@ -8,15 +8,15 @@ export function loadInitialScene(world, state) {
     // _createLights(world, state);
     _loadModels(world, state);
 
-    // _createCinematicWaypoint(world, state, "Point_A_Kasur",
-    //     new THREE.Vector3(-72, 4, -37),
-    //     new THREE.Euler(0, 143, 0));
+    _createCinematicWaypoint(world, state, "Point_A_Kasur",
+        new THREE.Vector3(-72, 4, -37),
+        new THREE.Euler(0, 143, 0));
 
-    // _createCinematicWaypoint(world, state, "Point_B_Pintu",
-    //     new THREE.Vector3(-86, 4, -21),
-    //     new THREE.Euler(0, 89, 0));
-    
-        // SCENE 01
+    _createCinematicWaypoint(world, state, "Point_B_Pintu",
+        new THREE.Vector3(-86, 4, -21),
+        new THREE.Euler(0, 89, 0));
+
+    // SCENE 01
     _createCinematicWaypoint(world, state, "Scene01_ceilling",
         new THREE.Vector3(-65.25, 7.79, -40.55),
         new THREE.Euler(90, 180, 0));
@@ -285,12 +285,12 @@ export function _loadModels(world, state) {
         },
         {
             url: './Models/nightmare_creature_1.glb',
-            name: 'Ghost_Kitchen', 
+            name: 'Ghost_Kitchen',
             position: new THREE.Vector3(-40.51, 3.53, -52.89),
             scale: new THREE.Vector3(5, 5, 5),
             rotation: new THREE.Euler(0, 64, 0),
 
-            animName: 'Creature_armature|roar', 
+            animName: 'Creature_armature|roar',
             visible: false,     // Sembunyi
             fixOrigin: false,
             isMonster: true     // <--- TANDA MONSTER
@@ -330,47 +330,77 @@ export function _loadModels(world, state) {
                 pivotGroup.name = cfg.name || cfg.url.split('/').pop().replace('.glb', '');
 
                 pivotGroup.add(model);
-                model.scale.copy(cfg.scale);
 
-                // --- 1. LOGIKA FIX ORIGIN (KHUSUS BANGUNAN) ---
+                // --- 1. SET POSISI, ROTASI & ORIGIN ---
+                pivotGroup.position.copy(cfg.position);
+                pivotGroup.rotation.copy(cfg.rotation);
+
+                // Fix Origin (Khusus Bangunan)
                 if (cfg.fixOrigin) {
                     model.updateMatrixWorld(true);
                     const box = new THREE.Box3().setFromObject(model);
                     const center = box.getCenter(new THREE.Vector3());
-
                     model.position.x = -center.x;
                     model.position.z = -center.z;
                     model.position.y = -box.min.y;
                 }
 
-                // --- 2. LOGIKA MONSTER TAGGING (BARU) ---
-                // Ini kuncinya agar Collision nanti bisa bedakan Hantu vs Tembok
-                if (cfg.isMonster) {
-                    pivotGroup.userData.isMonster = true;
-                    pivotGroup.userData.checkCollision = true; // Nanti dicek bersyarat (visible/invisible)
-                } else {
-                    // Kalau bangunan, selalu cek collision
-                    pivotGroup.userData.isMonster = false;
-                    pivotGroup.userData.checkCollision = true;
-                }
-
-                // Apply Posisi & Rotasi
-                pivotGroup.position.copy(cfg.position);
-                pivotGroup.rotation.copy(cfg.rotation);
-
-                // Apply Visibilitas
-                if (cfg.visible === false) {
-                    pivotGroup.visible = false;
-                } else {
-                    pivotGroup.visible = true;
-                }
-
+                // --- 2. ADD KE WORLD DULUAN (PENTING) ---
+                // Objek harus masuk scene dulu sebelum kita mainkan shader-nya
                 world.add(pivotGroup);
 
                 state.addObject(pivotGroup, {
                     isSelectable: true,
                     isDraggable: true
                 });
+
+                // --- 3. LOGIKA SPLIT (MONSTER vs BIASA) ---
+                // Hapus semua logika visible/tagging lama, ganti dengan blok ini:
+
+                if (cfg.isMonster) {
+                    // === KASUS MONSTER (PRE-WARM SHADER) ===
+                    pivotGroup.userData.isMonster = true;
+                    pivotGroup.userData.checkCollision = true;
+
+                    // 1. Simpan Scale Asli
+                    const originalScale = cfg.scale.clone();
+
+                    // 2. Kecilkan jadi debu (biar tak terlihat mata)
+                    pivotGroup.scale.set(0.0001, 0.0001, 0.0001);
+
+                    // 3. PAKSA VISIBLE = TRUE (Supaya GPU mau memproses shader)
+                    pivotGroup.visible = true;
+
+                    // 4. PAKSA COMPILE (Trik Anti Lag)
+                    world.renderer.compile(pivotGroup, world.camera);
+
+                    // 5. KEMBALIKAN KONDISI SETELAH 100ms
+                    setTimeout(() => {
+                        // Balikin ukuran asli
+                        pivotGroup.scale.copy(originalScale);
+
+                        // Balikin status visibility sesuai Config (misal: false/sembunyi)
+                        if (cfg.visible === false) {
+                            pivotGroup.visible = false;
+                        }
+                        // Jika cfg.visible true, biarkan tetap true
+                    }, 100);
+
+                } else {
+                    // === KASUS OBJEK BIASA ===
+                    pivotGroup.userData.isMonster = false;
+                    pivotGroup.userData.checkCollision = true;
+
+                    // Scale Normal
+                    pivotGroup.scale.copy(cfg.scale);
+
+                    // Visibility Normal (Tanpa Trik)
+                    if (cfg.visible === false) {
+                        pivotGroup.visible = false;
+                    } else {
+                        pivotGroup.visible = true;
+                    }
+                }
 
                 if (gltf.animations && gltf.animations.length > 0) {
                     pivotGroup.animations = gltf.animations;
@@ -394,6 +424,14 @@ export function _loadModels(world, state) {
                     // --- 1. SETUP VISUAL (KHUSUS MESH) ---
                     // Group tidak punya material/geometry, jadi jangan diproses disini
                     if (node.isMesh) {
+                        // NOTE Hanya render depan mata
+                        node.frustumCulled = true;
+
+                        if (node.geometry) {
+                            node.geometry.computeBoundingSphere();
+                            node.geometry.computeBoundingBox();
+                        }
+
                         const isManualGlass = manualGlassList.includes(node.name);
                         const isPhysicalGlass = (node.material.opacity < 1.0) ||
                             (node.material.transmission && node.material.transmission > 0) ||
@@ -432,12 +470,14 @@ export function _loadModels(world, state) {
                                 node.material.shadowSide = THREE.DoubleSide;
                             }
 
+
                             node.material.polygonOffset = true;
                             node.material.polygonOffsetFactor = 1;
                             node.material.polygonOffsetUnits = 1;
                         }
 
-                        node.frustumCulled = false;
+                        if (node.material.shininess) node.material.shininess = 0;
+                        if (node.material.roughness) node.material.roughness = 1;
 
                         if (!cfg.isMonster && node.geometry) {
                             node.geometry.computeBoundsTree();

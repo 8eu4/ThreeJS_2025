@@ -28,129 +28,13 @@ export class StoryManager {
         }, 100);
     }
 
-    // Fungsi ini yang nanti dipanggil untuk mainkan film full
-    async playFullMovie() {
-        console.log("🎬 FILM DIMULAI...");
-
-        // Scene 1: Bangun Tidur
-        await this.scene01_WakeUp();
-
-        //Scene 2 : Lorong Kamar Menuju Dapur
-        await this.scene02_BedroomCorridor();
-
-        //Scene 3 : Dapur
-        await this.scene03_Kitchen();
-
-        console.log("🎬 FILM SELESAI.");
-    }
-    // async playFullMovie() {
-    //     console.log("🎬 ACTION! (Smooth Waypoint Animation)");
-
-    //     this._setCinematicMode(true);
-    //     this._setGuiVisibility(false);
-
-    //     // 1. POSISI AWAL (Point A)
-    //     // Untuk start game, biasanya memang Teleport (Instant) biar gak aneh
-    //     this._instantSetPosition("Point_A_Kasur");
-
-    //     // 2. BANGUN TIDUR
-    //     await this.blink(0.5);
-    //     await this._wait(1.0);
-
-    //     // 3. JALAN KE PINTU (Point B)
-    //     // Bergerak halus selama 4 detik menuju posisi & rotasi Point B
-    //     console.log("🚶 Jalan ke Pintu...");
-    //     await this.playerMoveToWaypoint("Point_B_Pintu", 4.0);
-
-    //     await this._wait(0.5);
-
-    //     // 4. JALAN KE KORIDOR (Point C) - Contoh jika ada
-    //     // console.log("🚶 Ke Koridor...");
-    //     // await this.playerMoveToWaypoint("Point_C_Koridor", 3.0);
-
-    //     console.log("🎬 CUT! Scene Selesai.");
-    //     this._setCinematicMode(false);
-    //     this._setGuiVisibility(true);
-    //     this.cameraManager.setMode('FPS');
-    // }
-
-    _instantSetPosition(waypointName) {
-        const waypoint = this.scene.getObjectByName(waypointName);
-        if (waypoint) {
-            this.cameraManager.cameraRig.position.copy(waypoint.position);
-            this.cameraManager.cameraRig.rotation.y = waypoint.rotation.y;
-            this.cameraManager.camera.rotation.x = waypoint.rotation.x;
-            this.cameraManager.cameraShakeGroup.rotation.z = waypoint.rotation.z;
-        }
-    }
-
-    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut") {
-        return new Promise(resolve => {
-            const waypoint = this.scene.getObjectByName(waypointName);
-
-            if (!waypoint) {
-                console.error(`❌ Waypoint '${waypointName}' tidak ditemukan!`);
-                resolve();
-                return;
-            }
-
-            const rig = this.cameraManager.cameraRig;
-            const cam = this.cameraManager.camera;
-            const neck = this.cameraManager.cameraShakeGroup;
-
-            // Target Posisi & Rotasi dari Waypoint
-            const targetPos = waypoint.position;
-            const targetRotY = waypoint.rotation.y; // Badan (Kiri/Kanan)
-            const targetRotX = waypoint.rotation.x; // Kepala (Atas/Bawah)
-            const targetRotZ = waypoint.rotation.z; // Leher (Miring)
-
-            // GSAP Timeline untuk sinkronisasi semua gerakan
-            const tl = gsap.timeline({
-                onComplete: resolve,
-                defaults: { ease: easeType } // Gerakan mulus (Lambat-Cepat-Lambat)
-            });
-
-            // 1. Animasi Posisi (Badan Jalan)
-            tl.to(rig.position, {
-                x: targetPos.x,
-                y: targetPos.y,
-                z: targetPos.z,
-                duration: duration
-            }, 0);
-
-            // 2. Animasi Rotasi Badan (Y - Kiri/Kanan)
-            // Three.js rotasi kadang muter jauh (350 derajat ke 10 derajat).
-            // Kita biarkan GSAP menangani interpolasi terpendeknya (biasanya aman).
-            tl.to(rig.rotation, {
-                y: targetRotY,
-                duration: duration
-            }, 0);
-
-            // 3. Animasi Rotasi Kepala (X - Dongak/Nunduk)
-            tl.to(cam.rotation, {
-                x: targetRotX,
-                duration: duration
-            }, 0);
-
-            // 4. Animasi Miring (Z - Roll)
-            tl.to(neck.rotation, {
-                z: targetRotZ,
-                duration: duration
-            }, 0);
-
-            console.log(`▶️ Moving to ${waypointName} (${duration}s)`);
-        });
-    }
-
-
-
-    // scene01 --> Bangun dari tidur (sudah aman, bisa dicontoh cara bikinnya)
     async scene01_WakeUp() {
         console.log("--- Scene 1: Wake Up Started ---");
 
         // 1. SETUP AWAL
-        this._setGuiVisibility(false); // Sembunyikan UI
-        this._setCinematicMode(true);  // Matikan kontrol player
+        if (this.currentViewMode === 'FPS') {
+            this._setGuiVisibility(false);
+        }
 
         this._instantSetPosition("Scene01_ceilling");
 
@@ -192,21 +76,15 @@ export class StoryManager {
 
 
 
-        // Fase: Selesai
         console.log("Scene 1 Selesai. Player Control Active.");
-        this._setGuiVisibility(false); // Munculkan UI lagi
-        this._setCinematicMode(false); // Matikan mode cinematic
-
-        // PENTING: Pindah ke FPS agar fisika & collision aktif kembali
     }
-    // scene02 --> Turun dari kasur dan jalan ke pintu kamar
-    // jika posisi kamera menalanjutkan scene sebelumnya, tidak perlu define lagi posisi awal kamera
     async scene02_BedroomCorridor() {
         console.log("--- Scene 2: Bedroom Corridor ---");
 
         // 1. SETUP AWAL
-        this._setGuiVisibility(false); // Sembunyikan UI
-        this._setCinematicMode(true);  // Matikan kontrol player
+        if (this.currentViewMode === 'FPS') {
+            this._setGuiVisibility(false);
+        }
 
         await this.runParallel([
             this.playerMoveToWaypoint("Scene02_walkoutside", 3),
@@ -232,17 +110,16 @@ export class StoryManager {
 
         await this.animateDoor("Door_ToKitchen", 90, 2.0)
 
-        // this._setCinematicMode(false);
-        // this._setGuiVisibility(true);
-        // this.cameraManager.setMode('FPS');
     }
 
     async scene03_Kitchen() {
         console.log("--- Scene 3: Kitchen ---");
 
         // 1. SETUP AWAL
-        this._setGuiVisibility(false); // Sembunyikan UI
-        this._setCinematicMode(true);  // Matikan kontrol player
+        if (this.currentViewMode === 'FPS') {
+            this._setGuiVisibility(false);
+        }
+
         await this.playerMoveToWaypoint("Scene03_enterkitchen", 4);
 
         await this.runParallel([
@@ -286,12 +163,282 @@ export class StoryManager {
             this._waitAndRun(0.5, () => this.playMonsterAnimation("Ghost_Kitchen", "Creature_armature|attack_2", 1)),
             this._waitAndRun(0.7, () => this.playerMoveToWaypoint("Scene03_scared_4", 1.5, "power2.in")),
             // this._waitAndRun(1, () => this.setEyeOpenness(0, 1)),
-            
+
         ]);
 
     }
 
 
+    async playFullMovie(startInFPS = true) {
+        console.log(`🎬 FILM DIMULAI (Start Mode: ${startInFPS ? 'FPS' : 'ORBIT'})...`);
+
+        this.currentViewMode = startInFPS ? 'FPS' : 'ORBIT';
+        this.isStoryPlaying = true;
+
+        // [PERBAIKAN 1] HANYA matikan UI jika mode FPS (Cinematic Asli). 
+        // Kalau False (Debug), UI TETAP NYALA.
+        if (startInFPS) {
+            this._setGuiVisibility(false);
+            this.world.setHelpersVisibility(false);
+        } else {
+            this._setGuiVisibility(true); // Pastikan nyala
+            this.world.setHelpersVisibility(true); // Helper nyala buat debug
+        }
+
+        // Atur Tombol Switch View
+        if (this.world.ui) {
+            this.world.ui.setCinematicButtonVisible(!startInFPS);
+        }
+
+        // Masuk Mode
+        this._setCinematicMode(true, this.currentViewMode);
+
+        // --- MULAI SEQUENCE ---
+        await this.scene01_WakeUp();
+        await this.scene02_BedroomCorridor();
+        await this.scene03_Kitchen();
+        // --- SELESAI ---
+
+        // Reset
+        this.world.setHelpersVisibility(true);
+        this._setCinematicMode(false);
+        this._setGuiVisibility(true);
+
+        if (this.world.ui) this.world.ui.setCinematicButtonVisible(false);
+        console.log("🎬 FILM SELESAI.");
+    }
+
+
+    switchViewMode() {
+        // Toggle Mode
+        const newMode = (this.currentViewMode === 'FPS') ? 'ORBIT' : 'FPS';
+        this.currentViewMode = newMode;
+
+        console.log(`🔄 SWITCHING VIEW TO: ${newMode}`);
+
+        // 1. Eksekusi perpindahan mode kamera
+        this._setCinematicMode(true, newMode);
+
+        // 2. Atur Efek Mata (PENTING: Matikan efek jika Orbit)
+        if (newMode === 'ORBIT') {
+            // Paksa mata terbuka/transparan di CSS
+            const eyelidEl = document.getElementById('cinematic-eyelids');
+            if (eyelidEl) eyelidEl.style.opacity = '0';
+
+            // Nyalakan Helper di mode debug
+            this.world.setHelpersVisibility(true);
+        } else {
+            // Balikin efek mata
+            const eyelidEl = document.getElementById('cinematic-eyelids');
+            if (eyelidEl) eyelidEl.style.opacity = '1';
+
+            // Force update visual mata sesuai state terakhir
+            this.setEyeOpenness(this.currentOpenness, 0);
+
+            // Matikan helper biar bersih
+            this.world.setHelpersVisibility(false);
+        }
+
+        // 3. Pastikan Tombol Tetap Nyala (Karena kita sudah berinteraksi)
+        if (this.world.ui) {
+            this.world.ui.setCinematicButtonVisible(true);
+        }
+    }
+
+    _setCinematicMode(active, viewMode) {
+        const rig = this.cameraManager.cameraRig;
+        const cam = this.cameraManager.camera;
+        const shakeGroup = this.cameraManager.cameraShakeGroup;
+        const debugBody = this.cameraManager.debugMesh;
+
+        if (active) {
+            this.cameraManager.fpsControls.unlock();
+
+            // Stop Physics Movement
+            this.cameraManager.velocity.set(0, 0, 0);
+            this.cameraManager.currentMoveVelocity.set(0, 0, 0);
+
+            if (viewMode === 'FPS') {
+                // --- MODE 1: FPS (NONTON FILM) ---
+                // Di sini kita pakai mode 'CINEMATIC' agar mouse user MATI
+                this.cameraManager.activeMode = 'CINEMATIC';
+                this.cameraManager.orbitControls.enabled = false;
+
+                shakeGroup.add(cam);
+                cam.position.set(0, 0, 0);
+                cam.rotation.set(0, 0, 0);
+                shakeGroup.rotation.z = 0;
+
+                if (debugBody) debugBody.visible = false;
+
+            } else {
+                // --- MODE 2: ORBIT (DEBUG / FREE ROAM) ---
+
+                // [PERBAIKAN 3] PENTING!!
+                // Set activeMode ke 'ORBIT'.
+                // Kalau diset 'CINEMATIC', CameraManager.update() bakal skip update orbitControls.
+                // Makanya kemarin Anda teleport tapi ga bisa gerak.
+                this.cameraManager.activeMode = 'ORBIT';
+
+                this.world.scene.add(cam);
+
+                // TELEPORT KAMERA KE POSISI PLAYER SAAT INI
+                const worldPos = new THREE.Vector3();
+                rig.getWorldPosition(worldPos);
+
+                cam.position.set(worldPos.x + 5, worldPos.y + 5, worldPos.z + 5);
+                cam.lookAt(worldPos);
+
+                this.cameraManager.orbitControls.target.copy(worldPos);
+                this.cameraManager.orbitControls.enabled = true;
+                this.cameraManager.orbitControls.update();
+
+                if (debugBody) {
+                    debugBody.visible = true;
+                    debugBody.material.opacity = 0.5;
+                    debugBody.material.wireframe = true;
+                }
+            }
+        } else {
+            // Keluar Mode Total -> Balik ke FPS Gameplay
+            if (debugBody) debugBody.visible = false;
+            this.cameraManager.setMode('FPS');
+        }
+    }
+
+
+    // async playFullMovie() {
+    //     console.log("🎬 FILM DIMULAI...");
+    //     this.world.setHelpersVisibility(false);
+
+    //     // Scene 1: Bangun Tidur
+    //     await this.scene01_WakeUp();
+
+    //     //Scene 2 : Lorong Kamar Menuju Dapur
+    //     await this.scene02_BedroomCorridor();
+
+    //     //Scene 3 : Dapur
+    //     await this.scene03_Kitchen();
+
+    //     this.world.setHelpersVisibility(true);
+    //     console.log("🎬 FILM SELESAI.");
+    // }
+
+
+    _instantSetPosition(waypointName) {
+        const waypoint = this.scene.getObjectByName(waypointName);
+        if (waypoint) {
+            // 1. Pindahkan Rig (Badan Pemain) - Ini yang menjalankan animasi
+            this.cameraManager.cameraRig.position.copy(waypoint.position);
+            this.cameraManager.cameraRig.rotation.y = waypoint.rotation.y;
+            this.cameraManager.camera.rotation.x = waypoint.rotation.x;
+            this.cameraManager.cameraShakeGroup.rotation.z = waypoint.rotation.z;
+
+            // 2. [FIX BARU] Cek jika sedang Free Roam (ORBIT), Kamera harus ikut pindah!
+            // Agar tidak ketinggalan saat Player teleport di awal scene.
+            if (this.currentViewMode === 'ORBIT') {
+                const cam = this.cameraManager.camera;
+
+                // 1. SAMAKAN DULU arah kamera dengan arah Waypoint
+                // (Supaya sumbu "Mundur/Maju"-nya sama dengan arah hadap player)
+                cam.position.copy(waypoint.position);
+                cam.rotation.copy(waypoint.rotation);
+
+                // 2. GESER BERDASARKAN SUMBU DIRI SENDIRI (Local Axis)
+                // Ini fungsi bawaan Three.js yang Anda cari.
+                cam.translateY(0);  // Naik ke atas (Sumbu Y lokal)
+                cam.translateZ(0.1); // Mundur ke belakang (Sumbu Z lokal positif = mundur)
+
+                // 3. Update Pivot Orbit
+                if (this.cameraManager.orbitControls) {
+                    this.cameraManager.orbitControls.target.copy(waypoint.position);
+                    this.cameraManager.orbitControls.update();
+                }
+            }
+        } else {
+            console.warn(`⚠️ Waypoint '${waypointName}' tidak ditemukan untuk instant position.`);
+        }
+    }
+
+
+    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut") {
+        return new Promise(resolve => {
+            const waypoint = this.scene.getObjectByName(waypointName);
+
+            if (!waypoint) {
+                console.error(`❌ Waypoint '${waypointName}' tidak ditemukan!`);
+                resolve();
+                return;
+            }
+
+            const rig = this.cameraManager.cameraRig;
+            const cam = this.cameraManager.camera;
+            const neck = this.cameraManager.cameraShakeGroup;
+
+            // Target Posisi & Rotasi dari Waypoint
+            const targetPos = waypoint.position;
+            const targetRotY = waypoint.rotation.y; // Badan (Kiri/Kanan)
+            const targetRotX = waypoint.rotation.x; // Kepala (Atas/Bawah)
+            const targetRotZ = waypoint.rotation.z; // Leher (Miring)
+
+            // GSAP Timeline untuk sinkronisasi semua gerakan
+            const tl = gsap.timeline({
+                onComplete: resolve,
+                defaults: { ease: easeType }
+            });
+
+            // 1. ANIMASI BADAN (RIG) - SELALU JALAN (Supaya cerita tetap maju)
+            tl.to(rig.position, {
+                x: targetPos.x,
+                y: targetPos.y,
+                z: targetPos.z,
+                duration: duration
+            }, 0);
+
+            // Rotasi Badan (Y) juga selalu jalan agar arah jalan benar
+            tl.to(rig.rotation, {
+                y: targetRotY,
+                duration: duration
+            }, 0);
+
+            // 2. ANIMASI KAMERA (KEPALA) - HANYA JIKA MODE FPS
+            // Jika mode ORBIT (Free Roam), jangan gerakkan kamera user!
+            if (this.currentViewMode === 'FPS') {
+                tl.to(cam.rotation, {
+                    x: targetRotX,
+                    duration: duration
+                }, 0);
+
+                // Animasi Miring (Z - Roll)
+                tl.to(neck.rotation, {
+                    z: targetRotZ,
+                    duration: duration
+                }, 0);
+            }
+
+            console.log(`▶️ Moving to ${waypointName} (${duration}s)`);
+        });
+    }
+
+
+    _tweenCameraRotation(x, y, z, duration) {
+        return new Promise(resolve => {
+            // Cek Mode: Kalau Orbit, Skip animasi kamera biar mouse user tidak "lawan arus"
+            if (this.currentViewMode === 'ORBIT') {
+                resolve();
+                return;
+            }
+
+            gsap.to(this.cameraManager.camera.rotation, {
+                x: x, // Pitch (Atas Bawah)
+                y: y, // Yaw (Kiri Kanan)
+                z: z, // Roll (Miring)
+                duration: duration,
+                ease: "power2.inOut",
+                onComplete: resolve
+            });
+        });
+    }
 
     animateDoor(doorName, targetAngleDeg, duration) {
         return new Promise(resolve => {
@@ -322,8 +469,58 @@ export class StoryManager {
     // --- FUNGSI UTAMA: ANIMASI MATA ---
     // targetRatio: 0.0 (Tutup) sampai 1.0 (Buka)
     // duration: Kecepatan transisi dalam detik
+    // setEyeOpenness(targetRatio, duration = 1.0) {
+    //     // Clamp 0-1
+    //     const val = Math.max(0, Math.min(1, targetRatio));
+    //     this.currentOpenness = val;
+
+    //     // --- STRATEGI BARU: RADIAL GRADIENT ---
+
+    //     // Kita butuh objek sementara untuk di-animasikan angkanya oleh GSAP
+    //     // Karena kita tidak bisa meng-animasikan string "radial-gradient" secara langsung
+
+    //     const eyelidEl = document.getElementById('cinematic-eyelids');
+
+    //     if (!eyelidEl || !window.gsap) return;
+
+    //     // Tentukan tinggi bukaan mata (Vertical Aperture)
+    //     // 0.0 -> 0% (Tutup total, hitam semua)
+    //     // 1.0 -> 150% (Buka lebar sampai keluar layar)
+    //     const targetHeight = val * 150;
+
+    //     // Kita buat objek proxy untuk menyimpan nilai saat ini
+    //     // (GSAP akan mengubah nilai 'h' di objek ini setiap frame)
+    //     // Kita perlu tahu start value-nya agar smooth. 
+    //     // Idealnya kita simpan 'currentHeight' di class, tapi untuk simpel kita ambil dari variabel global/state
+    //     if (this._currentEyeHeight === undefined) this._currentEyeHeight = 0; // Default awal tutup/buka sesuai CSS
+
+    //     const proxy = { h: this._currentEyeHeight };
+
+    //     gsap.to(proxy, {
+    //         h: targetHeight,
+    //         duration: duration,
+    //         ease: "power2.inOut",
+    //         onUpdate: () => {
+    //             // Update CSS setiap frame berdasarkan nilai 'h' yang sedang jalan
+    //             // Rumus: Ellipse Melebar (150% width) tapi Tinggi berubah (h%)
+    //             // Transparent mulai 30% dari pusat, Hitam mulai 60% dari pusat (Soft Edge)
+
+    //             eyelidEl.style.backgroundImage = `radial-gradient(ellipse 150% ${proxy.h}% at center, transparent 30%, black 60%)`;
+
+    //             // Simpan nilai terakhir agar kalau di-interrupt (toggle C) transisinya nyambung
+    //             this._currentEyeHeight = proxy.h;
+    //         }
+    //     });
+    // }
+
+
     setEyeOpenness(targetRatio, duration = 1.0) {
         // Clamp 0-1
+
+        if (this.currentViewMode === 'ORBIT') return;
+        const eyelidEl = document.getElementById('cinematic-eyelids');
+        if (!eyelidEl || !window.gsap) return;
+
         const val = Math.max(0, Math.min(1, targetRatio));
         this.currentOpenness = val;
 
@@ -332,7 +529,6 @@ export class StoryManager {
         // Kita butuh objek sementara untuk di-animasikan angkanya oleh GSAP
         // Karena kita tidak bisa meng-animasikan string "radial-gradient" secara langsung
 
-        const eyelidEl = document.getElementById('cinematic-eyelids');
 
         if (!eyelidEl || !window.gsap) return;
 
@@ -397,32 +593,32 @@ export class StoryManager {
     }
 
     // --- A. KAMERA & GERAKAN ---
-    _setCinematicMode(active) {
-        if (active) {
-            console.log("[Story] Masuk Mode Cinematic");
+    // _setCinematicMode(active) {
+    //     if (active) {
+    //         console.log("[Story] Masuk Mode Cinematic");
 
-            // 1. Matikan Kontrol Player
-            this.cameraManager.activeMode = 'CINEMATIC';
-            this.cameraManager.orbitControls.enabled = false;
-            this.cameraManager.fpsControls.unlock();
-            this.cameraManager.velocity.set(0, 0, 0);
-            this.cameraManager.currentMoveVelocity.set(0, 0, 0);
+    //         // 1. Matikan Kontrol Player
+    //         this.cameraManager.activeMode = 'CINEMATIC';
+    //         this.cameraManager.orbitControls.enabled = false;
+    //         this.cameraManager.fpsControls.unlock();
+    //         this.cameraManager.velocity.set(0, 0, 0);
+    //         this.cameraManager.currentMoveVelocity.set(0, 0, 0);
 
-            // 2. ATTACH CAMERA KE RIG (PENTING!)
-            // Kita paksa kamera masuk ke dalam struktur Rig agar bisa digerakkan oleh StoryManager
-            this.cameraManager.cameraShakeGroup.add(this.cameraManager.camera);
+    //         // 2. ATTACH CAMERA KE RIG (PENTING!)
+    //         // Kita paksa kamera masuk ke dalam struktur Rig agar bisa digerakkan oleh StoryManager
+    //         this.cameraManager.cameraShakeGroup.add(this.cameraManager.camera);
 
-            // 3. RESET TRANSFORM LOKAL KAMERA
-            // Agar kamera duduk pas di titik pusat Rig (tidak ada offset aneh dari mode Orbit sebelumnya)
-            this.cameraManager.camera.position.set(0, 0, 0);
-            this.cameraManager.camera.rotation.set(0, 0, 0);
+    //         // 3. RESET TRANSFORM LOKAL KAMERA
+    //         // Agar kamera duduk pas di titik pusat Rig (tidak ada offset aneh dari mode Orbit sebelumnya)
+    //         this.cameraManager.camera.position.set(0, 0, 0);
+    //         this.cameraManager.camera.rotation.set(0, 0, 0);
 
-        } else {
-            console.log("[Story] Keluar Mode Cinematic");
-            // Saat keluar, kita tidak perlu detach manual di sini.
-            // Biarkan setMode('FPS') atau setMode('ORBIT') yang mengurusnya nanti.
-        }
-    }
+    //     } else {
+    //         console.log("[Story] Keluar Mode Cinematic");
+    //         // Saat keluar, kita tidak perlu detach manual di sini.
+    //         // Biarkan setMode('FPS') atau setMode('ORBIT') yang mengurusnya nanti.
+    //     }
+    // }
 
     // Fungsi Jalan (Move Rig)
     // Gunakan 'null' jika tidak ingin mengubah sumbu tertentu (misal hanya geser X)
@@ -695,4 +891,7 @@ export class StoryManager {
         // Jalankan tugasnya sekarang
         await taskFunction();
     }
+
+
+
 }

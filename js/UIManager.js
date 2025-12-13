@@ -43,6 +43,8 @@ export class UIManager {
 
         this._tempOldTransform = null;
 
+
+
         this._setupTransformControlsListeners();
 
         this._init();
@@ -54,8 +56,9 @@ export class UIManager {
         this._buildGizmoGUI();
         this._buildSaveLoadGUI();
         this._buildDebugGUI();
+        this.createCinematicButton();
+        
         this._initResizer();
-
         this.cameraFolder.open();
         this.gizmoFolder.open();
         this.saveLoadFolder.open();
@@ -67,9 +70,15 @@ export class UIManager {
     _buildDebugGUI() {
         const settings = {
             showColliders: false,
-            showPlayerBody: true
+            showPlayerBody: true,
+            showFPS:true
         };
 
+        this.debugFolder.add(this.world, 'fps')
+            .name('⚡ Current FPS') // Nama Label
+            .listen()              // Wajib: Agar angkanya gerak sendiri
+            .disable();            // Disable: Agar user gabisa edit angkanya, cuma lihat
+        
         this.debugFolder.add(settings, 'showColliders').name('Show ALL Mesh Colliders').onChange((show) => {
             if (show) {
                 // Bersihkan dulu kalau ada sisa
@@ -117,7 +126,222 @@ export class UIManager {
                 this.cameraManager.debugMesh.visible = show;
             }
         });
+
+        this.debugFolder.add(this.world, 'helpersVisible')
+            .name('👁️ Show Helpers')
+            .listen()
+            .onChange((isVisible) => {
+                this.world.setHelpersVisibility(isVisible);
+            });
+
+        const debugTools = {
+            scanMeshes: () => {
+                console.clear();
+                console.log("%c🔍 SCANNING ALL MESHES FOR LIGHT LEAKS...", "color: cyan; font-weight: bold; font-size: 14px;");
+
+                const report = [];
+                let count = 0;
+
+                this.world.scene.traverse((node) => {
+                    if (node.isMesh) {
+                        // 1. Terjemahkan Kode Sisi (0, 1, 2) jadi Teks
+                        const getSideName = (val) => {
+                            if (val === 0) return "FrontSide (Depan)";
+                            if (val === 1) return "BackSide (Belakang)";
+                            if (val === 2) return "DoubleSide (Bolak-Balik)";
+                            return "Unknown";
+                        };
+
+                        // 2. Cek Shadow Side (Kalau null, dia ikut 'Side' biasa)
+                        let shadowSideStatus = "Default (Ikut Visual)";
+                        if (node.material && node.material.shadowSide !== null && node.material.shadowSide !== undefined) {
+                            shadowSideStatus = getSideName(node.material.shadowSide);
+                        } else if (node.material) {
+                            // Kalau tidak diset manual, shadowSide defaultnya null (ikut side visual)
+                            shadowSideStatus = `(Auto) ${getSideName(node.material.side)}`;
+                        }
+
+                        // 3. Cek Parent (Apakah dia anak Kitchen?)
+                        let hierarchy = node.name;
+                        let curr = node.parent;
+                        while (curr && curr.type !== 'Scene') {
+                            hierarchy = `${curr.name} > ${hierarchy}`;
+                            curr = curr.parent;
+                        }
+
+                        // 4. Masukkan ke Laporan
+                        report.push({
+                            'Name': node.name,
+                            'Parent Group': node.parent ? node.parent.name : 'NONE',
+                            'Visible': node.visible,
+                            'Cast Shadow': node.castShadow ? "✅ YES" : "❌ NO",
+                            'Receive Shadow': node.receiveShadow ? "✅ YES" : "❌ NO",
+                            'Visual Side': node.material ? getSideName(node.material.side) : 'No Mat',
+                            'Shadow Side': shadowSideStatus, // <--- INI YG KITA CARI
+                            'Full Hierarchy': hierarchy
+                        });
+                        count++;
+                    }
+                });
+
+                console.table(report);
+                console.log(`%cScan Complete: Found ${count} meshes.`, "color: lime;");
+                console.log("👉 Silakan Copy tabel di atas atau screenshot jika ada yang aneh pada bagian 'Shadow Side' atau 'Cast Shadow'.");
+            }
+        };
+
+        this.debugFolder.add(debugTools, 'scanMeshes').name('🖨️ PRINT MESH LOG');
+
+        // Di dalam UIManager.js -> _buildDebugGUI()
+
+        const shadowInspector = {
+            inspectWall: () => {
+                console.clear();
+                console.log("%c🕵️ SHADOW INSPECTOR", "color: orange; font-weight: bold; font-size: 16px;");
+
+                // 1. Cek Settingan Flashlight Player
+                const fl = this.world.lightingManager.lights['player_flashlight'];
+                if (fl) {
+                    console.group("🔦 FLASHLIGHT STATUS");
+                    console.log(`Shadow Enabled: ${fl.castShadow}`);
+                    console.log(`Bias: ${fl.shadow.bias}`);
+                    console.log(`Normal Bias: ${fl.shadow.normalBias} (Harus > 0)`);
+                    console.log(`Camera Near: ${fl.shadow.camera.near} (Harus 0.01)`);
+                    console.groupEnd();
+                }
+
+                // 2. Raycast ke Tengah Layar (Apa yang kamu lihat)
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), this.world.camera);
+                const intersects = raycaster.intersectObjects(this.world.scene.children, true);
+
+                if (intersects.length > 0) {
+                    // Ambil hit pertama yang bukan helper/invisible
+                    let hit = null;
+                    for (let i = 0; i < intersects.length; i++) {
+                        const obj = intersects[i].object;
+                        if (obj.visible && !obj.name.includes("Helper") && !obj.name.includes("Gizmo")) {
+                            hit = intersects[i];
+                            break;
+                        }
+                    }
+
+                    if (hit) {
+                        const obj = hit.object;
+                        console.group(`🧱 WALL INSPECTION: "${obj.name}"`);
+                        console.log(`Distance: ${hit.distance.toFixed(3)} meters`);
+                        console.log(`Cast Shadow: ${obj.castShadow ? "✅ YES" : "❌ NO"} (Penyebab Tembus Utama)`);
+                        console.log(`Receive Shadow: ${obj.receiveShadow ? "✅ YES" : "❌ NO"}`);
+
+                        let sideName = "Unknown";
+                        if (obj.material.shadowSide === 0) sideName = "FrontSide (Depan Saja)";
+                        if (obj.material.shadowSide === 1) sideName = "BackSide (Belakang Saja)";
+                        if (obj.material.shadowSide === 2) sideName = "DoubleSide (Bolak Balik)";
+                        if (obj.material.shadowSide === null) sideName = "Default (Ikut Visual)";
+
+                        console.log(`Shadow Side: ${sideName} ${obj.material.shadowSide === 2 ? "✅ OK" : "⚠️ WARNING"}`);
+                        console.groupEnd();
+                    } else {
+                        console.log("❌ Tidak ada tembok di depan mata.");
+                    }
+                }
+                console.log("👉 Periksa 'Cast Shadow' dan 'Shadow Side' di atas.");
+            }
+        };
+
+        this.debugFolder.add(shadowInspector, 'inspectWall').name('🕵️ INSPECT WALL IN FRONT');
+
+        const leakDetector = {
+            findLeakers: () => {
+                console.clear();
+                console.log("%c🕵️ SCANNING FOR LIGHT LEAKERS (Objek Visible tapi Tembus Cahaya)...", "color: red; font-weight: bold; font-size: 16px;");
+
+                const suspects = [];
+                let count = 0;
+
+                this.world.scene.traverse((node) => {
+                    if (node.isMesh && node.visible) {
+
+                        // KITA CARI YANG: Cast Shadow = FALSE
+                        if (node.castShadow === false) {
+
+                            const name = node.name.toLowerCase();
+                            const type = node.type;
+
+                            // 1. ABAIKAN BENDA YANG MEMANG HARUS TEMBUS (Whitelist)
+                            const isHelper = name.includes('helper') || name.includes('debug') || name.includes('gizmo') || name.includes('transformcontrols');
+                            const isWaypoint = node.userData && node.userData.isWaypoint;
+                            const isSky = name.includes('sky') || name.includes('ground plane'); // Ground biasanya receive, tapi kadang cast false gpp
+                            const isUI = name.includes('ui');
+
+                            if (isHelper || isWaypoint || isSky || isUI) return;
+
+                            // 2. TANGKAP TERSANGKA
+                            suspects.push({
+                                'Name': node.name,
+                                'Parent': node.parent ? node.parent.name : 'NONE',
+                                'Material Name': node.material ? node.material.name : 'No Mat',
+                                'Transp?': node.material ? node.material.transparent : '-',
+                                'Opacity': node.material ? node.material.opacity : '-',
+                                'Is Kitchen?': node.name.toLowerCase().includes('kitchen') || (node.parent && node.parent.name.toLowerCase().includes('kitchen')) ? "YES" : "NO"
+                            });
+                            count++;
+                        }
+                    }
+                });
+
+                if (count === 0) {
+                    console.log("%c✅ AMAN! Tidak ada objek solid yang bocor.", "color: lime");
+                } else {
+                    console.table(suspects);
+                    console.warn(`⚠️ Ditemukan ${count} objek yang MEMBIARKAN cahaya lewat (CastShadow = false). Lihat tabel di atas.`);
+                    console.log("👉 Jika ada Tembok/Lantai di daftar ini, berarti codingan SceneSetup.js belum berhasil memaksa mereka jadi solid.");
+                }
+            }
+        };
+
+        this.debugFolder.add(leakDetector, 'findLeakers').name('🚨 FIND LIGHT LEAKERS');
     }
+
+            // Panggil ini di _init() atau constructor
+        createCinematicButton() {
+            // Buat tombol HTML floating
+            const btn = document.createElement('button');
+            btn.id = 'cinematic-toggle-btn';
+            btn.innerText = '🎥 Switch View (FPS/Orbit)';
+
+            // Styling agar mojok di kiri atas dan terlihat jelas
+            Object.assign(btn.style, {
+                position: 'absolute',
+                top: '10px',
+                left: '10px',
+                zIndex: '9999',
+                padding: '10px 20px',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                color: 'white',
+                border: '1px solid white',
+                cursor: 'pointer',
+                display: 'none', // Default sembunyi
+                fontFamily: 'monospace',
+                fontSize: '14px'
+            });
+
+            btn.onclick = () => {
+                if (this.storyManager) {
+                    this.storyManager.switchViewMode(); // Fungsi baru di StoryManager
+                }
+            };
+
+            document.body.appendChild(btn);
+            this.cinematicBtn = btn;
+        }
+
+        // Fungsi untuk StoryManager mengatur tombol ini
+        setCinematicButtonVisible(visible) {
+            if (this.cinematicBtn) {
+                this.cinematicBtn.style.display = visible ? 'block' : 'none';
+            }
+        }
 
     _clearColliderHelpers() {
         this.colliderHelpers.forEach(helper => {
@@ -478,7 +702,7 @@ export class UIManager {
         this.cameraFolder.add(cam, 'fov', 1, 180).onChange(updateCamera);
         const minMaxGUIHelper = new MinMaxGUIHelper(cam, 'near', 'far', 0.1);
         this.cameraFolder.add(minMaxGUIHelper, 'min', 0.01, 50, 0.01).name('near').onChange(updateCamera);
-        this.cameraFolder.add(minMaxGUIHelper, 'max', 0.1, 20000, 0.1).name('far').onChange(updateCamera);
+        this.cameraFolder.add(minMaxGUIHelper, 'max', 0.1, 300, 0.1).name('far').onChange(updateCamera);
     }
 
     _buildCameraModeGUI() {
@@ -658,4 +882,6 @@ export class UIManager {
         });
         return folder;
     }
+
+
 }

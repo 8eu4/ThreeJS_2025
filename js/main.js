@@ -92,7 +92,10 @@ window.addEventListener('click', (event) => {
 }, false); 
 
 window.storyManager = storyManager; 
-console.log("Ketik '    storyManager.playFullMovie()    ' di console untuk mulai cerita.");
+console.log("-- ANIMASI --");
+console.log("storyManager.playFullMovie(true)");
+console.log("-- DEBUG --");
+console.log("storyManager.playFullMovie(false)");
 
 // 6. Mulai aplikasi
 world.start();

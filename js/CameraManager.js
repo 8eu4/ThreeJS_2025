@@ -237,6 +237,13 @@ export class CameraManager {
             this.activeMode = 'FPS';
             this.orbitControls.enabled = false;
 
+            if (this.world.transformControls) {
+                this.world.transformControls.detach(); // Lepas dari objek apapun
+                this.world.transformControls.visible = true; // Sembunyikan
+                this.world.transformControls.enabled = true; // Matikan logicnya
+            }
+
+
             if (document.activeElement) document.activeElement.blur();
             document.body.focus();
 
@@ -262,6 +269,13 @@ export class CameraManager {
         } else if (mode === 'ORBIT') {
             this.activeMode = 'ORBIT';
             this.fpsControls.unlock();
+
+            if (this.world.transformControls) {
+                this.world.transformControls.detach(); // Lepas dari objek apapun
+                this.world.transformControls.visible = false; // Sembunyikan
+                this.world.transformControls.enabled = false; // Matikan logicnya
+            }
+
 
             if (document.activeElement) document.activeElement.blur();
             document.body.focus();
@@ -327,7 +341,7 @@ export class CameraManager {
 
     _checkWallCollision(directionVec) {
         // --- 1. CEK MONSTER (Tetap sama) ---
-        const monsterRadiusSq = 144.0;
+        const monsterRadiusSq = 40.0;
         this.tempPredictionStep.copy(directionVec).multiplyScalar(5.0);
         this.tempNextPos.copy(this.cameraRig.position).add(this.tempPredictionStep);
         const allObjects = this.state.allSelectableObjects;

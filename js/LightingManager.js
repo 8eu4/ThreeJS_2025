@@ -20,12 +20,12 @@ export class LightingManager {
         // 1. Ambient
 
         // MODE HORROR (Gelap):
-        // const ambientColor = 0x050510; // Biru Tua Gelap
-        // const ambientIntensity = 0.6;
+        const ambientColor = 0x050510; // Biru Tua Gelap
+        const ambientIntensity = 0.6;
 
         // MODE DEVELOPMENT (Terang Benderang - Pakai ini kalau mau ngedit):
-        const ambientColor = 0xffffff; // Putih
-        const ambientIntensity = 1.0;
+        // const ambientColor = 0xffffff; // Putih
+        // const ambientIntensity = 1.0;
         const ambient = new THREE.AmbientLight(ambientColor, ambientIntensity);
         ambient.name = "Ambient Light";
         this.scene.add(ambient);
@@ -35,14 +35,14 @@ export class LightingManager {
 
         // 2. Moonlight
         const moonLight = new THREE.DirectionalLight(0x4444aa, 0.5);
-        moonLight.position.set(500, 2000, 500);
+        moonLight.position.set(100, 200, 100);
         moonLight.castShadow = true;
-        moonLight.shadow.camera.left = -3000;
-        moonLight.shadow.camera.right = 3000;
-        moonLight.shadow.camera.top = 3000;
-        moonLight.shadow.camera.bottom = -3000;
-        moonLight.shadow.mapSize.width = 2048;
-        moonLight.shadow.mapSize.height = 2048;
+        moonLight.shadow.camera.left = -100;
+        moonLight.shadow.camera.right = 100;
+        moonLight.shadow.camera.top = 100;
+        moonLight.shadow.camera.bottom = -100;
+        moonLight.shadow.mapSize.width = 512;
+        moonLight.shadow.mapSize.height = 512;
 
         moonLight.shadow.bias = -0.0005;
         moonLight.shadow.normalBias = 0.05;
@@ -50,7 +50,7 @@ export class LightingManager {
         this.scene.add(moonLight);
         this.lights['global_moon'] = moonLight;
 
-        const dirHelper = new THREE.DirectionalLightHelper(moonLight, 500);
+        const dirHelper = new THREE.DirectionalLightHelper(moonLight, 200);
         this.scene.add(dirHelper);
         dirHelper.light = moonLight; // Bind helper ke light
 
@@ -65,11 +65,17 @@ export class LightingManager {
         flashLight.decay = 2;
         flashLight.distance = 100;
         flashLight.castShadow = true;
-        flashLight.shadow.bias = -0.0001;
-        flashLight.shadow.mapSize.width = 1024;
-        flashLight.shadow.mapSize.height = 1024;
 
-        flashLight.position.set(2, -1, 2);
+        flashLight.shadow.mapSize.width = 512;
+        flashLight.shadow.mapSize.height = 512;
+
+        flashLight.shadow.bias = -0.0001;
+        flashLight.shadow.normalBias = 0.1;
+
+        flashLight.shadow.camera.near = 0.001;
+        flashLight.shadow.camera.far = 100;
+
+        flashLight.position.set(0, -1, 0);
 
         // 2. POSISI TARGET (Di Tengah Depan Kamera)
         // Sesuai requestmu: "ngambil posisi kamera ... ditambah vektor (0, -2, -15)"
@@ -92,7 +98,7 @@ export class LightingManager {
             if (flashlight.intensity > 0) {
                 flashlight.intensity = 0; // OFF
             } else {
-                flashlight.intensity = 1000; // ON
+                flashlight.intensity = 500; // ON
             }
         }
     }
@@ -107,20 +113,20 @@ export class LightingManager {
         this._createPointLight('light_Bedroom_6', "BedroomLight6", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
         this._createPointLight('light_Bedroom_7', "BedroomLight7", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
 
-        // this._createPointLight('light_kitchen_1', "KitchenLight1", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
-        // this._createPointLight('light_kitchen_2', "KitchenLight2", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
+        this._createPointLight('light_kitchen_1', "KitchenLight1", new THREE.Vector3(0, 0, 0), "#9f9f9fff", 40);
+        this._createPointLight('light_kitchen_2', "KitchenLight2", new THREE.Vector3(0, 0, 0), "#9f9f9fff", 40);
 
         // --- CORRIDOR LIGHTS ---
-        this._createPointLight('light_corridor_1', "CorridorLight1", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_2', "CorridorLight2", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_3', "CorridorLight3", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_4', "CorridorLight4", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_5', "CorridorLight5", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_6', "CorridorLight6", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_7', "CorridorLight7", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_8', "CorridorLight8", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_9', "CorridorLight9", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
-        this._createPointLight('light_corridor_10', "CorridorLight10", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        // this._createPointLight('light_corridor_1', "CorridorLight1", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        this._createPointLight('light_corridor_2', "CorridorLight2", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
+        // this._createPointLight('light_corridor_3', "CorridorLight3", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        // this._createPointLight('light_corridor_4', "CorridorLight4", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        // this._createPointLight('light_corridor_5', "CorridorLight5", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        // this._createPointLight('light_corridor_6', "CorridorLight6", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        // this._createPointLight('light_corridor_7', "CorridorLight7", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        // this._createPointLight('light_corridor_8', "CorridorLight8", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        // this._createPointLight('light_corridor_9', "CorridorLight9", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
+        // this._createPointLight('light_corridor_10', "CorridorLight10", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
 
         // --- LINKED SPOT LIGHT (INI YANG SEBELUMNYA BIKIN ERROR) ---
         // Pastikan fungsi _createLinkedSpotLight ada di bawah!
@@ -129,14 +135,65 @@ export class LightingManager {
             new THREE.Vector3(-32, 22, -60),   // start
             new THREE.Vector3(-32, 22, -75), // end
             "#575252",          // Warna
-            1000,              // Intensitas
+            2200,              // Intensitas
             80,               // Distance
             Math.PI / 2,       // Angle 
             0.1,                // Penumbra 
             true
         );
 
-        this.setFlicker('light_corridor_1', true, 0.2, 0.5);
+        this._createSpotLight(
+            'light_corridor_window1',   // ID
+            new THREE.Vector3(43, 22, -60),   // start
+            new THREE.Vector3(43, 22, -85), // end
+            "#575252",          // Warna
+            3300,              // Intensitas
+            120,               // Distance
+            Math.PI / 2,       // Angle 
+            0.1,                // Penumbra 
+            true
+        );
+
+
+        this._createSpotLight(
+            'light_corridor_window2',   // ID
+            new THREE.Vector3(85, 22, -1),   // start
+            new THREE.Vector3(110, 22, -1), // end
+            "#575252",          // Warna
+            2200,              // Intensitas
+            80,               // Distance
+            Math.PI / 2,       // Angle 
+            0.1,                // Penumbra 
+            true
+        );
+
+        this._createSpotLight(
+            'light_corridor_window3',   // ID
+            new THREE.Vector3(85, 22, 29), 
+            new THREE.Vector3(110, 22, 29),
+            "#575252",          // Warna
+            2200,              // Intensitas
+            120,               // Distance
+            Math.PI / 2,       // Angle 
+            0.1,                // Penumbra 
+            true
+        );
+
+        this._createSpotLight(
+            'light_corridor_window4',   // ID
+            new THREE.Vector3(47, 22, 61),   // start
+            new THREE.Vector3(47, 22, 91), // end
+            "#575252",          // Warna
+            3300,              // Intensitas
+            120,               // Distance
+            Math.PI / 2,       // Angle 
+            0.1,                // Penumbra 
+            true
+        );
+
+
+
+        this.setFlicker('light_corridor_2', true, 0.2, 0.5);
     }
 
     // =========================================================
@@ -153,7 +210,7 @@ export class LightingManager {
             light.castShadow = true;
             light.shadow.mapSize.width = 512; // Resolusi rendah cukup
             light.shadow.mapSize.height = 512;
-            light.shadow.bias = 0;
+            light.shadow.bias = -0.00001;
             light.shadow.normalBias = 0.02;
             light.shadow.camera.near = 0.01;
             light.shadow.camera.far = distance;
@@ -171,7 +228,7 @@ export class LightingManager {
     }
 
     // Spot Light
-    _createSpotLight(id, source, end, color, intensity, distance = 100, angle = Math.PI / 4, penumbra = 0.5, castShadow, helperSize = 4) {
+    _createSpotLight(id, source, end, color, intensity, distance = 100, angle = Math.PI / 4, penumbra = 0.5, castShadow = false, helperSize = 4) {
         const light = new THREE.SpotLight(color, intensity);
         light.distance = distance;
         light.angle = angle;
@@ -179,10 +236,12 @@ export class LightingManager {
         light.castShadow = castShadow || false;
 
         if (light.castShadow) {
-            light.shadow.mapSize.width = 2048;
-            light.shadow.mapSize.height = 2048;
-            light.shadow.bias = -0.00001;
+            light.shadow.mapSize.width = 512;
+            light.shadow.mapSize.height = 512;
+            light.shadow.bias = 0;
             light.shadow.normalBias = 0.05;
+
+            light.shadow.camera.near = 0.001;
         }
 
         // Setup Source (Posisi Lampu)
