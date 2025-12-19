@@ -16,135 +16,158 @@ export class StoryManager {
 
         // Status Cerita
         this.isStoryPlaying = false;
-
         this.currentOpenness = 1.0;
-
-        // Simpan state tinggi mata (150 = Buka Penuh)
         this._currentEyeHeight = 150;
 
+        // untuk debug
+        this.currentViewMode = 'ORBIT';
+
+
         // Set kondisi awal Buka (Tanpa animasi)
-        setTimeout(() => {
+        this._preloadAllScenes().then(() => {
+                console.log("👁️ Loading Selesai. Membuka Mata...");
             this.setEyeOpenness(1.0, 0);
         }, 100);
     }
 
-    async scene01_WakeUp() {
-        console.log("--- Scene 1: Wake Up Started ---");
+    async _preloadAllScenes() {
+        console.groupCollapsed("🚀 Pre-loading All Scenes (Instant Mode)...");
+        const start = performance.now();
 
-        // 1. SETUP AWAL
-        if (this.currentViewMode === 'FPS') {
-            this._setGuiVisibility(false);
+        this.isSetupMode = true; // AKTIFKAN MODE KILAT (Skip semua durasi)
+
+        // 1. Ambil semua nama fungsi di class ini
+        const allMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
+
+        // 2. Filter yang namanya diawali "scene" (contoh: scene01, sceneBoss, sceneEnding)
+        const sceneMethods = allMethods.filter(m => m.startsWith('scene') && typeof this[m] === 'function');
+
+        // 3. Jalankan satu per satu secara instan
+        for (const methodName of sceneMethods) {
+            // console.log(`   Scanning: ${methodName}...`);
+            await this[methodName](); // Eksekusi (Tapi karena SetupMode, dia lari secepat kilat)
         }
 
-        this._instantSetPosition("Scene01_ceilling");
+        this.isSetupMode = false; // MATIKAN MODE KILAT. Siap untuk Play beneran.
 
+        const duration = (performance.now() - start).toFixed(2);
+        console.log(`✅ Done! ${sceneMethods.length} scenes loaded in ${duration}ms.`);
+        console.groupEnd();
+    }
+
+// ==========================================
+    //               SCENE 01
+    // ==========================================
+    async scene01_WakeUp() {
+        if (!this.isSetupMode) console.log("--- Scene 1 ---");
+        if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
+
+        // --- 1 LINE SETUP ---
+        this._instantSetPosition(this.defineWaypoint("Scene01_ceilling", { x: -65.25, y: 7.79, z: -40.55 }, { x: 90, y: 180 }));
+        
         this.setEyeOpenness(0, 0);
+        await this._wait(2.0);
 
-        // 2. ACTION!
-        await this._wait(2.0); // Hening 2 detik
-
-        // Fase: Membuka Mata (Perlahan & Berat)
-        console.log("Mata mulai terbuka...");
-        this.setEyeOpenness(0.3, 2.0); // Buka dikit (2 detik)
-        await this._wait(2.5);
-
-        this.setEyeOpenness(0.1, 0.5); // Tutup lagi (ngantuk)
-        await this._wait(1.0);
-
-        // Fase: Blink Sequence (Agar terlihat nyata)
+        if(!this.isSetupMode) console.log("Mata terbuka...");
+        this.setEyeOpenness(0.3, 2.0); await this._wait(2.5);
+        this.setEyeOpenness(0.1, 0.5); await this._wait(1.0);
         await this._blinkSequence();
+        this.setEyeOpenness(1.0, 1.5); await this._wait(1.0);
 
-        // Buka Penuh
-        this.setEyeOpenness(1.0, 1.5);
-        await this._wait(1.0);
+        if(!this.isSetupMode) console.log("Bangun...");
 
-        console.log("Bangun duduk...");
-
-        await this.playerMoveToWaypoint("Scene01_getup", 3.0);
-        await this.playerMoveToWaypoint("Scene01_lookleft", 1.0);
-        await this.playerMoveToWaypoint("Scene01_lookright", 2.0);
+        // --- 1 LINE ACTION ---
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_getup", { x: -65.25, y: 9.24, z: -38.57 }, { y: 180 }), 3.0);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_lookleft", { x: -65.25, y: 9.24, z: -38.57 }, { y: 210 }), 1.0);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_lookright", { x: -65.25, y: 9.24, z: -38.57 }, { y: 150 }), 2.0);
         await this.playerMoveToWaypoint("Scene01_getup", 1.0);
-
+        
         this._blinkSequence();
 
-        await this.playerMoveToWaypoint("Scene01_looksidedown", 3.0);
-        await this.playerMoveToWaypoint("Scene01_looksideup", 2.0);
-        await this.playerMoveToWaypoint("Scene01_gotodoor_1", 6.0, "none");
-        await this.playerMoveToWaypoint("Scene01_gotodoor_2", 1.0, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksidedown", { x: -70.45, y: 8.54, z: -40.44 }, { x: -90, y: 90 }), 3.0);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksideup", { x: -71.17, y: 10.91, z: -40.59 }, { y: 150 }), 2.0);
+        
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_gotodoor_1", { x: -84.53, y: 10.91, z: -22.77 }, { y: 150 }), 6.0, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_gotodoor_2", { x: -86, y: 10.91, z: -21 }, { y: 89 }), 1.0, "none");
 
         await this.animateDoor("Door_Bedroom", 90, 2.0);
-
-
-
-        console.log("Scene 1 Selesai. Player Control Active.");
+        if(!this.isSetupMode) console.log("Scene 1 Done.");
     }
-    async scene02_BedroomCorridor() {
-        console.log("--- Scene 2: Bedroom Corridor ---");
 
-        // 1. SETUP AWAL
-        if (this.currentViewMode === 'FPS') {
-            this._setGuiVisibility(false);
-        }
+    // ==========================================
+    //               SCENE 02
+    // ==========================================
+    async scene02_BedroomCorridor() {
+        if (!this.isSetupMode) console.log("--- Scene 2 ---");
+        if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
+
+        // await this.runParallel([
+        //     this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walkoutside", { x: -94.75, y: 10.91, z: -21 }, { y: 0 }), 3),
+        //     this.moveMonsterTo("Ghost_Corridor", this.defineWaypoint("Scene02_monsterwalk_m", { x: -82.96, y: 3.53, z: -54.34 }, { y: -90 }), 6),
+        //     this._waitAndRun(3, () => this._blinkSequence()),
+        // ]);
+
+        // await this.setMonsterVisibility("Ghost_Corridor", false);
+
+        // await this.runParallel([
+        //     this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walktocurve", { x: -94.75, y: 10.91, z: -51.52 }, { y: 0 }), 10, "none"),
+        //     this._waitAndRun(3, () => this.blink(1)),
+        // ]);
+
+        // await this.playerMoveToWaypoint(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }), 2, "none");
+
+        this._instantSetPosition(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }));
 
         await this.runParallel([
-            this.playerMoveToWaypoint("Scene02_walkoutside", 3),
-            this.moveMonsterTo("Ghost_Corridor", "Scene02_monsterwalk_m", 6),
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walktokitchen", { x: -47.06, y: 10.91, z: -54.90 }, { y: -90 }), 10, "none"),
             this._waitAndRun(3, () => this._blinkSequence()),
         ]);
 
-        // await this.playerMoveToWaypoint("Scene02_headslightrotate", 1);
-        // await this.playerMoveToWaypoint("Scene02_walkoutside", 1);
-        await this.setMonsterVisibility("Ghost_Corridor", false);
-
-        await this.runParallel([
-            this.playerMoveToWaypoint("Scene02_walktocurve", 10, "none"),
-            this._waitAndRun(3, () => this.blink(1)),
-        ])
-        await this.playerMoveToWaypoint("Scene02_turn", 2, "none");
-
-        await this.runParallel([
-            this.playerMoveToWaypoint("Scene02_walktokitchen", 10, "none"),
-            this._waitAndRun(3, () => this._blinkSequence()),
-
-        ])
-
-        await this.animateDoor("Door_ToKitchen", 90, 2.0)
-
+        await this.animateDoor("Door_ToKitchen", 90, 2.0);
     }
 
+    // ==========================================
+    //               SCENE 03
+    // ==========================================
     async scene03_Kitchen() {
-        console.log("--- Scene 3: Kitchen ---");
+        if (!this.isSetupMode) console.log("--- Scene 3 ---");
+        if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
 
-        // 1. SETUP AWAL
-        if (this.currentViewMode === 'FPS') {
-            this._setGuiVisibility(false);
-        }
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_enterkitchen", {x:-33.17, y:10.91, z:-53.99}, "water_bottle"),4);
 
-        await this.playerMoveToWaypoint("Scene03_enterkitchen", 4);
-
+        //NOTE debug
+        // this._instantSetPosition(this.defineWaypoint("Scene03_enterkitchen", {x:-33.17, y:10.91, z:-53.99}, "water_bottle"));
         await this.runParallel([
             this.animateDoor("Door_ToKitchen", 0, 1),
-            this.playerMoveToWaypoint("Scene03_turntobottle", 3),
-        ])
-
-        await this.playerMoveToWaypoint("Scene03_confuseright", 1);
-        await this.playerMoveToWaypoint("Scene03_confuseleft", 1);
-        await this._wait(1.5);
-        await this.playerMoveToWaypoint("Scene03_backaway", 5);
-
-        await this.runParallel([
-            this._setLightState("light_kitchen_1", false),
-            this._setLightState("light_kitchen_2", false),
-            this._waitAndRun(0.5, () => this.playerMoveToWaypoint("Scene03_confuseright_2", 1, "none")),
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x: -31.02, y: 10.91, z: -54.49 }, { x: -16 }), 3),
         ]);
 
+        await this.runParallel([
+            this._setLightFlicker('light_kitchen_1', true, 0.3, 1),
+            this._setLightFlicker('light_kitchen_2', true, 0.2, 1),
+        ]);
+
+        await this._wait(1);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright", { x: -31.02, y: 10.91, z: -54.49 }, { y: -55 }), 0.5);
+        await this._wait(1);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseleft", { x: -31.02, y: 10.91, z: -54.49 }, { y: 72 }), 0.5);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_lookforward", { x: -31.02, y: 10.91, z: -54.49 }, { y: 0 }), 0.5);
+        await this._wait(1);
+        
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_backaway", { x: -31.02, y: 10.91, z: -50.41 }, { y: 0 }), 3);
+
+        await this._waitAndRun(0.5, () => this.playerMoveToWaypoint(
+            this.defineWaypoint("Scene03_confuseright_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: -70 }), 0.5, "none"
+        ));
 
         await this.runParallel([
-            this.playerMoveToWaypoint("Scene03_confuse_3", 2, "none"),
-            // this._setLightState("light_kitchen_window", true),
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseleft_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: 70 }), 0.5, "none"),
+            this._waitAndRun(0.5, () => this.playerMoveToWaypoint("Scene03_confuseleft_2", 1.5, "none")),
             this._waitAndRun(1.5, () => this.playerMoveToWaypoint("Scene03_backaway", 0.5, "none")),
-            this._waitAndRun(1.6, () => this.setMonsterVisibility("Ghost_Kitchen_Window", true)),
-            this._waitAndRun(3, () => this.playerMoveToWaypoint("Scene03_scared_1", 0.5, "power2.out")),
+            this._waitAndRun(1.6, () => this.setMonsterVisibility("Ghost_Kitchen_Window", true)), // Hantu Muncul
+            this._waitAndRun(3, () => this.playerMoveToWaypoint(
+                this.defineWaypoint("Scene03_scared_1", { x: -33.47, y: 10.91, z: -48.18 }, { x: -59, y: -59 }), 0.5, "power2.out"
+            )),
             this._waitAndRun(3.2, () => this.setEyeOpenness(0, 0.5)),
         ]);
 
@@ -154,19 +177,24 @@ export class StoryManager {
             this.setMonsterVisibility("Ghost_Kitchen_Window", false),
             this.setMonsterVisibility("Ghost_Kitchen", true),
             this.setEyeOpenness(1, 2),
-            this._waitAndRun(2.5, () => this.playerMoveToWaypoint("Scene03_scared_2", 3, "power2.in")),
+            this._waitAndRun(2.5, () => this.playerMoveToWaypoint(
+                this.defineWaypoint("Scene03_scared_2", { x: -30.41, y: 10.91, z: -48.18 }, { x: 20, y: 54 }), 3, "power2.in"
+            )),
         ]);
 
         await this.runParallel([
             this.playMonsterAnimation("Ghost_Kitchen", "Creature_armature|bite", 1),
-            this.playerMoveToWaypoint("Scene03_scared_3", 0.5, "power2.out"),
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_scared_3", { x: -29.19, y: 8.81, z: -48.18 }, { x: 33, y: 63 }), 0.5, "power2.out"),
             this._waitAndRun(0.5, () => this.playMonsterAnimation("Ghost_Kitchen", "Creature_armature|attack_2", 1)),
-            this._waitAndRun(0.7, () => this.playerMoveToWaypoint("Scene03_scared_4", 1.5, "power2.in")),
-            // this._waitAndRun(1, () => this.setEyeOpenness(0, 1)),
-
+            this._waitAndRun(0.7, () => this.playerMoveToWaypoint(
+                this.defineWaypoint("Scene03_scared_4", { x: -28.89, y: 5.31, z: -48.18 }, { x: -23, y: 57 }), 1.5, "power2.in"
+            )),
         ]);
-
     }
+
+    // ==========================================
+    //           CORE SYSTEM
+    // ==========================================
 
 
     async playFullMovie(startInFPS = true) {
@@ -194,7 +222,7 @@ export class StoryManager {
         this._setCinematicMode(true, this.currentViewMode);
 
         // --- MULAI SEQUENCE ---
-        await this.scene01_WakeUp();
+        // await this.scene01_WakeUp();
         await this.scene02_BedroomCorridor();
         await this.scene03_Kitchen();
         // --- SELESAI ---
@@ -208,6 +236,77 @@ export class StoryManager {
         console.log("🎬 FILM SELESAI.");
     }
 
+    defineWaypoint(name, pos = {}, rot = {}) {
+        // 1. Cek Apakah Sudah Ada?
+        const existing = this.scene.getObjectByName(name);
+        if (existing) return name;
+
+        if (!this._waypointGeometry) {
+            this._waypointGeometry = new THREE.BoxGeometry(2, 2, 4);
+            this._waypointMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffff00, wireframe: true, transparent: true, opacity: 0.5
+            });
+        }
+        const waypoint = new THREE.Mesh(this._waypointGeometry, this._waypointMaterial);
+
+        // --- ATUR POSISI ---
+        const px = pos.x ?? 0;
+        const py = pos.y ?? 0;
+        const pz = pos.z ?? 0;
+        waypoint.position.set(px, py, pz);
+
+        // --- ATUR ROTASI (LOGIKA ANTI-ERROR) ---
+        
+        // KASUS A: STRING (NAMA OBJEK)
+        if (typeof rot === 'string') {
+            // 1. Simpan nama target di 'userData' biar ingat
+            waypoint.userData.lookAtTargetName = rot; 
+
+            // 2. Coba cari sekarang (siapa tau udah ada)
+            const targetObj = this.scene.getObjectByName(rot);
+            if (targetObj) {
+                waypoint.lookAt(targetObj.position);
+            } else {
+                // Kalau belum ada (masih loading), jangan Error/Warn. Biarkan 0,0,0 dulu.
+                // Nanti saat _instantSetPosition atau playerMoveToWaypoint dipanggil, kita update rotasinya.
+                // console.log(`⏳ Waypoint '${name}' menunggu objek '${rot}' loading...`);
+            }
+        } 
+        // KASUS B: VECTOR3
+        else if (rot.isVector3) {
+            waypoint.lookAt(rot);
+        }
+        // KASUS C: MANUAL EULER
+        else {
+            const rx = rot.x ?? 0;
+            const ry = rot.y ?? 0;
+            const rz = rot.z ?? 0;
+            waypoint.rotation.set(THREE.MathUtils.degToRad(rx), THREE.MathUtils.degToRad(ry), THREE.MathUtils.degToRad(rz));
+        }
+        
+        // --- SETUP LAINNYA (SAMA SEPERTI SEBELUMNYA) ---
+        waypoint.name = name;
+        waypoint.userData.isWaypoint = true;
+
+        const dir = new THREE.Vector3(0, 0, -1);
+        const arrowHelper = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 5, 0x00ffff);
+        waypoint.add(arrowHelper);
+
+        // Logic Visibility (FPS vs Orbit)
+        if (this.currentViewMode === 'FPS') {
+            waypoint.visible = false;
+        } else {
+            waypoint.visible = true;
+        }
+
+        this.world.add(waypoint);
+
+        if (this.stateManager) {
+            this.stateManager.addObject(waypoint, { isSelectable: true, isDraggable: true });
+        }
+
+        return name;
+    }
 
     switchViewMode() {
         // Toggle Mode
@@ -306,28 +405,19 @@ export class StoryManager {
         }
     }
 
-
-    // async playFullMovie() {
-    //     console.log("🎬 FILM DIMULAI...");
-    //     this.world.setHelpersVisibility(false);
-
-    //     // Scene 1: Bangun Tidur
-    //     await this.scene01_WakeUp();
-
-    //     //Scene 2 : Lorong Kamar Menuju Dapur
-    //     await this.scene02_BedroomCorridor();
-
-    //     //Scene 3 : Dapur
-    //     await this.scene03_Kitchen();
-
-    //     this.world.setHelpersVisibility(true);
-    //     console.log("🎬 FILM SELESAI.");
-    // }
-
-
     _instantSetPosition(waypointName) {
+        if (this.isSetupMode) return;
+
         const waypoint = this.scene.getObjectByName(waypointName);
         if (waypoint) {
+
+            if (waypoint.userData.lookAtTargetName) {
+                const target = this.scene.getObjectByName(waypoint.userData.lookAtTargetName);
+                if (target) {
+                    waypoint.lookAt(target.position); // Update arah pandang real-time
+                }
+            }
+
             // 1. Pindahkan Rig (Badan Pemain) - Ini yang menjalankan animasi
             this.cameraManager.cameraRig.position.copy(waypoint.position);
             this.cameraManager.cameraRig.rotation.y = waypoint.rotation.y;
@@ -360,63 +450,146 @@ export class StoryManager {
         }
     }
 
-
     playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut") {
+        if (this.isSetupMode) return Promise.resolve();
+
         return new Promise(resolve => {
             const waypoint = this.scene.getObjectByName(waypointName);
-
-            if (!waypoint) {
-                console.error(`❌ Waypoint '${waypointName}' tidak ditemukan!`);
-                resolve();
-                return;
+            if (!waypoint) { 
+                console.error(`❌ Waypoint '${waypointName}' tidak ditemukan!`); 
+                resolve(); 
+                return; 
             }
 
             const rig = this.cameraManager.cameraRig;
             const cam = this.cameraManager.camera;
             const neck = this.cameraManager.cameraShakeGroup;
 
-            // Target Posisi & Rotasi dari Waypoint
-            const targetPos = waypoint.position;
-            const targetRotY = waypoint.rotation.y; // Badan (Kiri/Kanan)
-            const targetRotX = waypoint.rotation.x; // Kepala (Atas/Bawah)
-            const targetRotZ = waypoint.rotation.z; // Leher (Miring)
+            // 1. SIMPAN DATA AWAL (PENTING BIAR GAK SNAP)
+            const startRigQuat = rig.quaternion.clone();
+            const startHeadX = cam.rotation.x;
+            const startNeckZ = neck.rotation.z;
 
-            // GSAP Timeline untuk sinkronisasi semua gerakan
-            const tl = gsap.timeline({
-                onComplete: resolve,
-                defaults: { ease: easeType }
-            });
-
-            // 1. ANIMASI BADAN (RIG) - SELALU JALAN (Supaya cerita tetap maju)
-            tl.to(rig.position, {
-                x: targetPos.x,
-                y: targetPos.y,
-                z: targetPos.z,
-                duration: duration
-            }, 0);
-
-            // Rotasi Badan (Y) juga selalu jalan agar arah jalan benar
-            tl.to(rig.rotation, {
-                y: targetRotY,
-                duration: duration
-            }, 0);
-
-            // 2. ANIMASI KAMERA (KEPALA) - HANYA JIKA MODE FPS
-            // Jika mode ORBIT (Free Roam), jangan gerakkan kamera user!
-            if (this.currentViewMode === 'FPS') {
-                tl.to(cam.rotation, {
-                    x: targetRotX,
-                    duration: duration
-                }, 0);
-
-                // Animasi Miring (Z - Roll)
-                tl.to(neck.rotation, {
-                    z: targetRotZ,
-                    duration: duration
-                }, 0);
+            // Cek Target LookAt
+            let targetObj = null;
+            if (waypoint.userData.lookAtTargetName) {
+                targetObj = this.scene.getObjectByName(waypoint.userData.lookAtTargetName);
             }
 
-            console.log(`▶️ Moving to ${waypointName} (${duration}s)`);
+            // =========================================================
+            // 🔴 DEBUG HELPER: VISUALISASI TARGET 🔴
+            // =========================================================
+            if (targetObj) {
+                // Hapus marker lama biar gak numpuk
+                const oldMarker = this.scene.getObjectByName("DEBUG_TARGET_MARKER");
+                if (oldMarker) this.scene.remove(oldMarker);
+
+                // Buat Bola Merah Kecil
+                const debugGeom = new THREE.SphereGeometry(0.5, 16, 16); 
+                const debugMat = new THREE.MeshBasicMaterial({ 
+                    color: 0xff0000,  // MERAH MENYALA
+                    depthTest: false, // Selalu terlihat (tembus tembok)
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const debugSphere = new THREE.Mesh(debugGeom, debugMat);
+                
+                // Tempel di posisi target
+                debugSphere.position.copy(targetObj.position);
+                debugSphere.name = "DEBUG_TARGET_MARKER";
+                debugSphere.renderOrder = 999; // Render paling depan
+                
+                this.scene.add(debugSphere);
+                
+                console.log(`📍 [DEBUG] Target '${targetObj.name}' ada di:`, targetObj.position);
+                console.log("👉 Perhatikan BOLA MERAH di layar. Ke situlah kamera akan menoleh.");
+            }
+
+            // Variabel bantu untuk perhitungan frame-by-frame
+            const dummyRig = new THREE.Object3D(); 
+            const qTarget = new THREE.Quaternion();
+
+            const proxy = { t: 0 }; // Progress animasi 0 -> 1
+
+            gsap.to(proxy, {
+                t: 1,
+                duration: duration,
+                ease: easeType,
+                onUpdate: () => {
+                    // --- A. POSISI (Selalu Lerp Linear/Tween) ---
+                    // Kita pakai lerpVectors manual biar sinkron dengan rotasi
+                    rig.position.lerpVectors(rig.position, waypoint.position, 0.1); 
+                    // (Note: Posisi sebaiknya di-tween terpisah di bawah agar easingnya presisi,
+                    // tapi lerp di sini menjaga sinkronisasi kasar).
+
+                    // --- B. HITUNG ROTASI TARGET (REAL-TIME) ---
+                    
+                    if (targetObj) {
+                        // KASUS 1: LOOK AT BENDA (Benda D)
+                        // Hitung rotasi ideal seandainya kita melihat benda D sekarang
+                        
+                        // 1. Badan (Y-Only): LookAt sejajar lantai
+                        dummyRig.position.copy(rig.position);
+                        dummyRig.lookAt(targetObj.position.x, rig.position.y, targetObj.position.z);
+                        qTarget.copy(dummyRig.quaternion);
+
+                        // 2. Kepala (X-Only): Hitung Pitch
+                        // (Logic FPS: Minus Atan2)
+                        let targetPitch = 0;
+                        if (this.currentViewMode === 'FPS') {
+                            const dx = targetObj.position.x - rig.position.x;
+                            const dz = targetObj.position.z - rig.position.z;
+                            const dy = targetObj.position.y - rig.position.y;
+                            const dist = Math.sqrt(dx*dx + dz*dz);
+                            targetPitch = -Math.atan2(dy, dist);
+                        }
+                        
+                        // EKSEKUSI BLENDING (Slerp dari Awal ke Target LookAt)
+                        // proxy.t berjalan dari 0 ke 1. 
+                        // Saat t=0, dia pakai startRigQuat (Rotasi y=90 kamu).
+                        // Saat t=1, dia pakai qTarget (Rotasi LookAt).
+                        rig.quaternion.slerpQuaternions(startRigQuat, qTarget, proxy.t);
+
+                        // Blending Kepala
+                        if (this.currentViewMode === 'FPS') {
+                            cam.rotation.x = THREE.MathUtils.lerp(startHeadX, targetPitch, proxy.t);
+                            neck.rotation.z = THREE.MathUtils.lerp(startNeckZ, 0, proxy.t);
+                        }
+
+                    } else {
+                        // KASUS 2: NORMAL WAYPOINT (Benda C tanpa LookAt)
+                        // Targetnya adalah rotasi waypoint itu sendiri
+                        qTarget.copy(waypoint.quaternion);
+                        
+                        // Fix Ajaib: Shortest Path Check (Biar gak muter 360)
+                        if (startRigQuat.dot(qTarget) < 0) {
+                            qTarget.x = -qTarget.x;
+                            qTarget.y = -qTarget.y;
+                            qTarget.z = -qTarget.z;
+                            qTarget.w = -qTarget.w;
+                        }
+
+                        // Slerp
+                        rig.quaternion.slerpQuaternions(startRigQuat, qTarget, proxy.t);
+
+                        // Lerp Kepala
+                        if (this.currentViewMode === 'FPS') {
+                            cam.rotation.x = THREE.MathUtils.lerp(startHeadX, waypoint.rotation.x, proxy.t);
+                            neck.rotation.z = THREE.MathUtils.lerp(startNeckZ, waypoint.rotation.z, proxy.t);
+                        }
+                    }
+                },
+                onComplete: resolve
+            });
+
+            // Tween Posisi Utama (Agar Posisi Akurat Sesuai Ease)
+            gsap.to(rig.position, {
+                x: waypoint.position.x,
+                y: waypoint.position.y,
+                z: waypoint.position.z,
+                duration: duration,
+                ease: easeType
+            });
         });
     }
 
@@ -441,6 +614,7 @@ export class StoryManager {
     }
 
     animateDoor(doorName, targetAngleDeg, duration) {
+        if (this.isSetupMode) return Promise.resolve();
         return new Promise(resolve => {
             // 1. Cari objek pintu di dalam scene (Recursive search)
             const door = this.scene.getObjectByName(doorName);
@@ -466,58 +640,11 @@ export class StoryManager {
         });
     }
 
-    // --- FUNGSI UTAMA: ANIMASI MATA ---
-    // targetRatio: 0.0 (Tutup) sampai 1.0 (Buka)
-    // duration: Kecepatan transisi dalam detik
-    // setEyeOpenness(targetRatio, duration = 1.0) {
-    //     // Clamp 0-1
-    //     const val = Math.max(0, Math.min(1, targetRatio));
-    //     this.currentOpenness = val;
-
-    //     // --- STRATEGI BARU: RADIAL GRADIENT ---
-
-    //     // Kita butuh objek sementara untuk di-animasikan angkanya oleh GSAP
-    //     // Karena kita tidak bisa meng-animasikan string "radial-gradient" secara langsung
-
-    //     const eyelidEl = document.getElementById('cinematic-eyelids');
-
-    //     if (!eyelidEl || !window.gsap) return;
-
-    //     // Tentukan tinggi bukaan mata (Vertical Aperture)
-    //     // 0.0 -> 0% (Tutup total, hitam semua)
-    //     // 1.0 -> 150% (Buka lebar sampai keluar layar)
-    //     const targetHeight = val * 150;
-
-    //     // Kita buat objek proxy untuk menyimpan nilai saat ini
-    //     // (GSAP akan mengubah nilai 'h' di objek ini setiap frame)
-    //     // Kita perlu tahu start value-nya agar smooth. 
-    //     // Idealnya kita simpan 'currentHeight' di class, tapi untuk simpel kita ambil dari variabel global/state
-    //     if (this._currentEyeHeight === undefined) this._currentEyeHeight = 0; // Default awal tutup/buka sesuai CSS
-
-    //     const proxy = { h: this._currentEyeHeight };
-
-    //     gsap.to(proxy, {
-    //         h: targetHeight,
-    //         duration: duration,
-    //         ease: "power2.inOut",
-    //         onUpdate: () => {
-    //             // Update CSS setiap frame berdasarkan nilai 'h' yang sedang jalan
-    //             // Rumus: Ellipse Melebar (150% width) tapi Tinggi berubah (h%)
-    //             // Transparent mulai 30% dari pusat, Hitam mulai 60% dari pusat (Soft Edge)
-
-    //             eyelidEl.style.backgroundImage = `radial-gradient(ellipse 150% ${proxy.h}% at center, transparent 30%, black 60%)`;
-
-    //             // Simpan nilai terakhir agar kalau di-interrupt (toggle C) transisinya nyambung
-    //             this._currentEyeHeight = proxy.h;
-    //         }
-    //     });
-    // }
-
-
     setEyeOpenness(targetRatio, duration = 1.0) {
         // Clamp 0-1
+        if (this.isSetupMode) return;
 
-        if (this.currentViewMode === 'ORBIT') return;
+        // if (this.currentViewMode === 'ORBIT') return;
         const eyelidEl = document.getElementById('cinematic-eyelids');
         if (!eyelidEl || !window.gsap) return;
 
@@ -671,7 +798,6 @@ export class StoryManager {
         });
     }
 
-    // Fungsi Miringkan Badan (Roll Effect) via ShakeGroup
     _tweenShakeRoll(angle, duration) {
         return new Promise(resolve => {
             gsap.to(this.cameraManager.cameraShakeGroup.rotation, {
@@ -683,14 +809,12 @@ export class StoryManager {
         });
     }
 
-    // --- B. LIGHTING & EFEK ---
 
     _setLightFlicker(lightId, active, speed, chance) {
+        if (this.isSetupMode) return;
         this.lightingManager.setFlicker(lightId, active, speed, chance);
     }
 
-    // Saklar Instan (ON/OFF)
-    // Contoh: _setLightState('light_kitchen', false); -> Mati Total
     _setLightState(lightId, isOn) {
         if (!this.lightingManager) return;
 
@@ -703,8 +827,6 @@ export class StoryManager {
         }
     }
 
-    // Animasi Intensitas (Dimming / Brightening)
-    // Contoh: _tweenLightIntensity('light_kitchen', 0, 5); -> Meredup jadi 0 dalam 5 detik
     _tweenLightIntensity(lightId, targetIntensity, duration) {
         return new Promise(resolve => {
             if (!this.lightingManager) {
@@ -727,8 +849,6 @@ export class StoryManager {
         });
     }
 
-    // Efek Layar (Blackout / Blink)
-    // Membutuhkan elemen HTML <div id="overlay"> di index.html
     _fadeScreen(type, duration) {
         return new Promise(resolve => {
             const overlay = document.getElementById('overlay');
@@ -749,17 +869,43 @@ export class StoryManager {
     }
 
     setMonsterVisibility(monsterName, isVisible) {
+        if (this.isSetupMode) return;
         const monster = this.scene.getObjectByName(monsterName);
         if (monster) {
-            monster.visible = isVisible;
-            console.log(`👻 Monster '${monsterName}' visibility: ${isVisible}`);
+
+            // Pastikan kita punya data scale asli (backup)
+            if (!monster.userData.originalScale) {
+                // Default fallback kalau lupa set di SceneSetup
+                monster.userData.originalScale = new THREE.Vector3(5, 5, 5);
+            }
+
+            if (isVisible) {
+                // MUNCUL:
+                // Kembalikan ke ukuran asli (POP UP)
+                monster.scale.copy(monster.userData.originalScale);
+
+                // Pastikan visible TRUE
+                monster.visible = true;
+
+                console.log(`👻 Monster '${monsterName}' MUNCUL (Scale Restored)`);
+            } else {
+                // SEMBUNYI:
+                // JANGAN visible = false. TAPI KECILKAN.
+                monster.scale.set(0.0001, 0.0001, 0.0001);
+
+                // Biarkan visible TETAP TRUE agar GPU tidak membuang memorinya
+                monster.visible = true;
+
+                console.log(`👻 Monster '${monsterName}' NGUMPET (Scale 0.0001)`);
+            }
+
         } else {
             console.warn(`⚠️ Monster '${monsterName}' tidak ditemukan!`);
         }
     }
 
-    // 2. MENGGERAKKAN MONSTER (UPDATED: Support Waypoint Name)
     moveMonsterTo(monsterName, targetData, duration) {
+        if (this.isSetupMode) return Promise.resolve();
         return new Promise(resolve => {
             const monster = this.scene.getObjectByName(monsterName);
             if (!monster) {
@@ -812,6 +958,7 @@ export class StoryManager {
     }
 
     playMonsterAnimation(monsterName, animName, transitionDuration = 0.5) {
+        if (this.isSetupMode) return;
         const monster = this.scene.getObjectByName(monsterName);
 
         if (!monster || !monster.mixer || !monster.animations) {
@@ -851,6 +998,7 @@ export class StoryManager {
 
     // Fungsi Menunggu (Penting untuk timing cerita)
     _wait(seconds) {
+        if (this.isSetupMode) return Promise.resolve();
         return new Promise(resolve => setTimeout(resolve, seconds * 1000));
     }
 
@@ -871,6 +1019,8 @@ export class StoryManager {
     }
 
     async runParallel(actions) {
+        if (this.isSetupMode) return Promise.all(actions);
+
         console.log(`⚡ Menjalankan ${actions.length} aksi secara paralel...`);
 
         await Promise.all(actions);
@@ -878,11 +1028,9 @@ export class StoryManager {
         console.log("✅ Semua aksi paralel selesai.");
     }
 
-    // --- UTILITIES: DELAYED ACTION ---
-    // Menjalankan fungsi aksi setelah menunggu sekian detik
-    // delay: Waktu tunggu (detik)
-    // taskFunction: Arrow function yang berisi perintah (Contoh: () => this.moveMonsterTo(...))
     async _waitAndRun(delay, taskFunction) {
+        if (this.isSetupMode) return taskFunction();
+
         if (delay > 0) {
             // console.log(`⏳ Delay ${delay}s...`); // Uncomment jika ingin log
             await this._wait(delay);
@@ -892,6 +1040,69 @@ export class StoryManager {
         await taskFunction();
     }
 
-
-
 }
+
+
+    // async playFullMovie() {
+    //     console.log("🎬 FILM DIMULAI...");
+    //     this.world.setHelpersVisibility(false);
+
+    //     // Scene 1: Bangun Tidur
+    //     await this.scene01_WakeUp();
+
+    //     //Scene 2 : Lorong Kamar Menuju Dapur
+    //     await this.scene02_BedroomCorridor();
+
+    //     //Scene 3 : Dapur
+    //     await this.scene03_Kitchen();
+
+    //     this.world.setHelpersVisibility(true);
+    //     console.log("🎬 FILM SELESAI.");
+    // }
+
+    // --- FUNGSI UTAMA: ANIMASI MATA ---
+    // targetRatio: 0.0 (Tutup) sampai 1.0 (Buka)
+    // duration: Kecepatan transisi dalam detik
+    // setEyeOpenness(targetRatio, duration = 1.0) {
+    //     // Clamp 0-1
+    //     const val = Math.max(0, Math.min(1, targetRatio));
+    //     this.currentOpenness = val;
+
+    //     // --- STRATEGI BARU: RADIAL GRADIENT ---
+
+    //     // Kita butuh objek sementara untuk di-animasikan angkanya oleh GSAP
+    //     // Karena kita tidak bisa meng-animasikan string "radial-gradient" secara langsung
+
+    //     const eyelidEl = document.getElementById('cinematic-eyelids');
+
+    //     if (!eyelidEl || !window.gsap) return;
+
+    //     // Tentukan tinggi bukaan mata (Vertical Aperture)
+    //     // 0.0 -> 0% (Tutup total, hitam semua)
+    //     // 1.0 -> 150% (Buka lebar sampai keluar layar)
+    //     const targetHeight = val * 150;
+
+    //     // Kita buat objek proxy untuk menyimpan nilai saat ini
+    //     // (GSAP akan mengubah nilai 'h' di objek ini setiap frame)
+    //     // Kita perlu tahu start value-nya agar smooth. 
+    //     // Idealnya kita simpan 'currentHeight' di class, tapi untuk simpel kita ambil dari variabel global/state
+    //     if (this._currentEyeHeight === undefined) this._currentEyeHeight = 0; // Default awal tutup/buka sesuai CSS
+
+    //     const proxy = { h: this._currentEyeHeight };
+
+    //     gsap.to(proxy, {
+    //         h: targetHeight,
+    //         duration: duration,
+    //         ease: "power2.inOut",
+    //         onUpdate: () => {
+    //             // Update CSS setiap frame berdasarkan nilai 'h' yang sedang jalan
+    //             // Rumus: Ellipse Melebar (150% width) tapi Tinggi berubah (h%)
+    //             // Transparent mulai 30% dari pusat, Hitam mulai 60% dari pusat (Soft Edge)
+
+    //             eyelidEl.style.backgroundImage = `radial-gradient(ellipse 150% ${proxy.h}% at center, transparent 30%, black 60%)`;
+
+    //             // Simpan nilai terakhir agar kalau di-interrupt (toggle C) transisinya nyambung
+    //             this._currentEyeHeight = proxy.h;
+    //         }
+    //     });
+    // }

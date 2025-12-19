@@ -4,142 +4,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export function loadInitialScene(world, state) {
     _createGround(world);
-    // _createPrimitives(world, state);
-    // _createLights(world, state);
+
     _loadModels(world, state);
 
-    _createCinematicWaypoint(world, state, "Point_A_Kasur",
-        new THREE.Vector3(-72, 4, -37),
-        new THREE.Euler(0, 143, 0));
-
-    _createCinematicWaypoint(world, state, "Point_B_Pintu",
-        new THREE.Vector3(-86, 4, -21),
-        new THREE.Euler(0, 89, 0));
-
-    // SCENE 01
-    _createCinematicWaypoint(world, state, "Scene01_ceilling",
-        new THREE.Vector3(-65.25, 7.79, -40.55),
-        new THREE.Euler(90, 180, 0));
-    _createCinematicWaypoint(world, state, "Scene01_getup",
-        new THREE.Vector3(-65.25, 9.24, -38.57),
-        new THREE.Euler(0, 180, 0));
-    _createCinematicWaypoint(world, state, "Scene01_lookleft",
-        new THREE.Vector3(-65.25, 9.24, -38.57),
-        new THREE.Euler(0, 210, 0));
-    _createCinematicWaypoint(world, state, "Scene01_lookright",
-        new THREE.Vector3(-65.25, 9.24, -38.57),
-        new THREE.Euler(0, 150, 0));
-    _createCinematicWaypoint(world, state, "Scene01_looksidedown",
-        new THREE.Vector3(-70.45, 8.54, -40.44),
-        new THREE.Euler(-90, 90, 0));
-    _createCinematicWaypoint(world, state, "Scene01_looksideup",
-        new THREE.Vector3(-71.17, 10.91, -40.59),
-        new THREE.Euler(0, 150, 0));
-    _createCinematicWaypoint(world, state, "Scene01_gotodoor_1",
-        new THREE.Vector3(-84.53, 10.91, -22.77),
-        new THREE.Euler(0, 150, 0));
-    _createCinematicWaypoint(world, state, "Scene01_gotodoor_2",
-        new THREE.Vector3(-86, 10.91, -21),
-        new THREE.Euler(0, 89, 0));
-
-    // SCENE02
-    _createCinematicWaypoint(world, state, "Scene02_walkoutside",
-        new THREE.Vector3(-94.75, 10.91, -21),
-        new THREE.Euler(0, 0, 0));
-    _createCinematicWaypoint(world, state, "Scene02_headslightrotate",
-        new THREE.Vector3(-94.75, 10.91, -21),
-        new THREE.Euler(0, 0, -20));
-    _createCinematicWaypoint(world, state, "Scene02_monsterwalk_m",
-        new THREE.Vector3(-82.96, 3.53, -54.34),
-        new THREE.Euler(0, -90, 0));
-    _createCinematicWaypoint(world, state, "Scene02_walktocurve",
-        new THREE.Vector3(-94.75, 10.91, -51.52),
-        new THREE.Euler(0, 0, 0));
-    _createCinematicWaypoint(world, state, "Scene02_turn",
-        new THREE.Vector3(-89.28, 10.91, -54.90),
-        new THREE.Euler(0, -90, 0));
-    _createCinematicWaypoint(world, state, "Scene02_walktokitchen",
-        new THREE.Vector3(-47.06, 10.91, -54.90),
-        new THREE.Euler(0, -90, 0));
-
-    //SCENE03
-    _createCinematicWaypoint(world, state, "Scene03_enterkitchen",
-        new THREE.Vector3(-34.65, 10.91, -54.49),
-        new THREE.Euler(0, -90, 0));
-    _createCinematicWaypoint(world, state, "Scene03_turntobottle",
-        new THREE.Vector3(-31.02, 10.91, -54.49),
-        new THREE.Euler(-16, 0, 0));
-    _createCinematicWaypoint(world, state, "Scene03_confuseright",
-        new THREE.Vector3(-31.02, 10.91, -54.49),
-        new THREE.Euler(0, -55, 0));
-    _createCinematicWaypoint(world, state, "Scene03_confuseleft",
-        new THREE.Vector3(-31.02, 10.91, -54.49),
-        new THREE.Euler(0, 72, 0));
-    _createCinematicWaypoint(world, state, "Scene03_backaway",
-        new THREE.Vector3(-35.97, 10.91, -50.41),
-        new THREE.Euler(0, 0, 0));
-    _createCinematicWaypoint(world, state, "Scene03_confuseright_2",
-        new THREE.Vector3(-35.97, 10.91, -48.18),
-        new THREE.Euler(82, -20, 0));
-    _createCinematicWaypoint(world, state, "Scene03_confuse_3",
-        new THREE.Vector3(-35.97, 10.91, -48.18),
-        new THREE.Euler(0, 90, 0));
-    _createCinematicWaypoint(world, state, "Scene03_scared_1",
-        new THREE.Vector3(-33.47, 10.91, -48.18),
-        new THREE.Euler(-59, -59, 0));
-    _createCinematicWaypoint(world, state, "Scene03_scared_2",
-        new THREE.Vector3(-30.41, 10.91, -48.18),
-        new THREE.Euler(20, 54, 0));
-    _createCinematicWaypoint(world, state, "Scene03_scared_3",
-        new THREE.Vector3(-29.19, 8.81, -48.18),
-        new THREE.Euler(33, 63, 0));
-    _createCinematicWaypoint(world, state, "Scene03_scared_4",
-        new THREE.Vector3(-28.89, 5.31, -48.18),
-        new THREE.Euler(-23, 57, 0));
-
-
-}
-
-function _createCinematicWaypoint(world, state, name, position, rotationDeg) {
-    // Default rotasi 0,0,0 jika tidak diisi
-    if (!rotationDeg) rotationDeg = new THREE.Vector3(0, 0, 0);
-
-    const geometry = new THREE.BoxGeometry(2, 2, 4); // Kotak memanjang ke depan biar kelihatan arahnya
-    const material = new THREE.MeshBasicMaterial({
-        color: 0xffff00,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.5
-    });
-
-    const waypoint = new THREE.Mesh(geometry, material);
-    waypoint.name = name;
-    waypoint.position.copy(position);
-
-    // KONVERSI Vektor Derajat -> Euler Radians
-    waypoint.rotation.set(
-        THREE.MathUtils.degToRad(rotationDeg.x),
-        THREE.MathUtils.degToRad(rotationDeg.y),
-        THREE.MathUtils.degToRad(rotationDeg.z)
-    );
-
-    waypoint.userData.isWaypoint = true;
-
-    // VISUALISASI ARAH (Panah)
-    // Kita tempel panah yang menunjuk ke arah "Depan" lokal kotak ini (-Z)
-    const dir = new THREE.Vector3(0, 0, -1); // Arah depan karakter (-Z)
-    const length = 5;
-    const hex = 0x00ffff; // Cyan
-    const arrowHelper = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), length, hex);
-
-    waypoint.add(arrowHelper);
-
-    world.add(waypoint);
-    state.addObject(waypoint, { isSelectable: true, isDraggable: true });
 }
 
 
-// --- FUNGSI RECENTER (TIDAK BERUBAH) ---
 function recenterOrigin(object) {
     const box = new THREE.Box3();
     object.updateWorldMatrix(true, false);
@@ -169,7 +39,6 @@ function recenterMeshOrigin(mesh) {
     mesh.geometry.translate(-center.x, -center.y, -center.z);
     mesh.position.add(center);
 }
-// --- AKHIR FUNGSI RECENTER ---
 
 
 // --- FUNGSI HIERARCHY COLLAPSE (TIDAK BERUBAH) ---
@@ -193,8 +62,6 @@ function collapseHierarchy(object) {
         }
     }
 }
-// --- AKHIR FUNGSI COLLAPSE ---
-
 
 // --- Primitif & Lampu (Tidak Berubah) ---
 export function _createGround(world) {
@@ -227,14 +94,6 @@ export function _createPrimitives(world, state) {
     state.addObject(boxMesh, { isSelectable: true, isDraggable: true });
 }
 
-// --- AKHIR Primitif & Lampu ---
-
-
-// js/SceneSetup.js
-
-// js/SceneSetup.js
-
-// js/SceneSetup.js
 
 export function _loadModels(world, state) {
     const gltfLoader = new GLTFLoader();
@@ -326,16 +185,13 @@ export function _loadModels(world, state) {
                 const model = gltf.scene;
                 const pivotGroup = new THREE.Group();
 
-                // Gunakan nama khusus dari config jika ada, jika tidak pakai nama file
                 pivotGroup.name = cfg.name || cfg.url.split('/').pop().replace('.glb', '');
-
                 pivotGroup.add(model);
 
                 // --- 1. SET POSISI, ROTASI & ORIGIN ---
                 pivotGroup.position.copy(cfg.position);
                 pivotGroup.rotation.copy(cfg.rotation);
 
-                // Fix Origin (Khusus Bangunan)
                 if (cfg.fixOrigin) {
                     model.updateMatrixWorld(true);
                     const box = new THREE.Box3().setFromObject(model);
@@ -345,56 +201,95 @@ export function _loadModels(world, state) {
                     model.position.y = -box.min.y;
                 }
 
-                // --- 2. ADD KE WORLD DULUAN (PENTING) ---
-                // Objek harus masuk scene dulu sebelum kita mainkan shader-nya
+                // --- 2. SETUP ANIMASI (DULUAN AGAR BISA DIPRE-WARM) ---
+                if (gltf.animations && gltf.animations.length > 0) {
+                    pivotGroup.animations = gltf.animations;
+                    pivotGroup.mixer = new THREE.AnimationMixer(model);
+
+                    const targetAnim = cfg.animName || gltf.animations[0].name;
+                    const clip = gltf.animations.find(a => a.name === targetAnim);
+
+                    if (clip) {
+                        const action = pivotGroup.mixer.clipAction(clip);
+                        action.play();
+                        pivotGroup.currentAction = action;
+                    }
+                }
+
+                // --- 3. ADD KE WORLD ---
                 world.add(pivotGroup);
+                state.addObject(pivotGroup, { isSelectable: true, isDraggable: true });
 
-                state.addObject(pivotGroup, {
-                    isSelectable: true,
-                    isDraggable: true
-                });
-
-                // --- 3. LOGIKA SPLIT (MONSTER vs BIASA) ---
-                // Hapus semua logika visible/tagging lama, ganti dengan blok ini:
-
+                // --- 4. LOGIKA SPLIT (MONSTER vs BIASA) ---
                 if (cfg.isMonster) {
-                    // === KASUS MONSTER (PRE-WARM SHADER) ===
+                    // === [OPTIMIZED] KASUS MONSTER (AGGRESSIVE WARMUP) ===
                     pivotGroup.userData.isMonster = true;
                     pivotGroup.userData.checkCollision = true;
 
-                    // 1. Simpan Scale Asli
                     const originalScale = cfg.scale.clone();
 
-                    // 2. Kecilkan jadi debu (biar tak terlihat mata)
-                    pivotGroup.scale.set(0.0001, 0.0001, 0.0001);
+                    // A. Jangan pakai scale 0.0001 (terlalu kecil), pakai agak "berisi" sedikit
+                    //    Tapi sembunyikan di bawah tanah atau di dalam objek lain kalau mau aman.
+                    //    Untuk sekarang kita pakai scale kecil tapi MATIKAN CULLING.
+                    pivotGroup.scale.set(0.01, 0.01, 0.01);
 
-                    // 3. PAKSA VISIBLE = TRUE (Supaya GPU mau memproses shader)
+                    // B. FORCE VISIBLE TRUE
                     pivotGroup.visible = true;
 
-                    // 4. PAKSA COMPILE (Trik Anti Lag)
+                    // C. [PENTING] MATIKAN FRUSTUM CULLING SEMENTARA
+                    // Ini memaksa GPU merender objek walau dianggap "tidak terlihat" oleh kamera
+                    model.traverse(node => {
+                        if (node.isMesh) node.frustumCulled = false;
+                    });
+
+                    // D. [PENTING] FORCE UPDATE ANIMASI 1 FRAME
+                    // Agar shader tulang (Skinning) terupload ke GPU
+                    if (pivotGroup.mixer) {
+                        pivotGroup.mixer.update(0.016);
+                    }
+
+                    // E. PAKSA COMPILE
                     world.renderer.compile(pivotGroup, world.camera);
 
-                    // 5. KEMBALIKAN KONDISI SETELAH 100ms
+                    // F. KEMBALIKAN KONDISI SETELAH SELESAI
+                    // Gunakan delay sedikit lebih lama (misal 200ms) untuk memastikan frame ter-render
                     setTimeout(() => {
-                        // Balikin ukuran asli
-                        pivotGroup.scale.copy(originalScale);
+                        // LOGIKA BARU: JANGAN UBAH VISIBLE! MAIN SCALE SAJA!
 
-                        // Balikin status visibility sesuai Config (misal: false/sembunyi)
-                        if (cfg.visible === false) {
-                            pivotGroup.visible = false;
+                        // Simpan scale asli di userData biar aman
+                        if (!pivotGroup.userData.originalScale) {
+                            pivotGroup.userData.originalScale = originalScale.clone();
                         }
-                        // Jika cfg.visible true, biarkan tetap true
-                    }, 100);
+
+                        if (cfg.visible === false) {
+                            // Kalau config bilang sembunyi -> KECILKAN JADI DEBU
+                            // JANGAN visible = false !!!
+                            pivotGroup.scale.set(0.0001, 0.0001, 0.0001);
+                            pivotGroup.visible = true; // PASTIIN TETAP TRUE
+                        } else {
+                            // Kalau config bilang muncul -> BALIKIN UKURAN ASLI
+                            pivotGroup.scale.copy(originalScale);
+                            pivotGroup.visible = true;
+                        }
+
+                        // 3. Nyalakan lagi Frustum Culling
+                        // TAPI KHUSUS MONSTER, BIARKAN FALSE.
+                        // Kalau dinyalakan (true), saat monster jadi kecil (0.0001), 
+                        // Three.js bakal berhenti merender animasinya karena dianggap "hilang".
+                        // Biarkan false supaya animasinya tetap jalan di background walau sekecil kuman.
+
+                        // model.traverse(node => {
+                        //    if (node.isMesh) node.frustumCulled = true; 
+                        // });  <-- HAPUS ATAU COMMENT BAGIAN INI KHUSUS BLOK MONSTER
+
+                    }, 200);
 
                 } else {
                     // === KASUS OBJEK BIASA ===
                     pivotGroup.userData.isMonster = false;
                     pivotGroup.userData.checkCollision = true;
-
-                    // Scale Normal
                     pivotGroup.scale.copy(cfg.scale);
 
-                    // Visibility Normal (Tanpa Trik)
                     if (cfg.visible === false) {
                         pivotGroup.visible = false;
                     } else {
@@ -402,30 +297,17 @@ export function _loadModels(world, state) {
                     }
                 }
 
-                if (gltf.animations && gltf.animations.length > 0) {
-                    pivotGroup.animations = gltf.animations;
-
-                    if (!pivotGroup.mixer) {
-                        pivotGroup.mixer = new THREE.AnimationMixer(model);
-                        const targetAnim = cfg.animName || gltf.animations[0].name;
-                        const clip = gltf.animations.find(a => a.name === targetAnim);
-
-                        if (clip) {
-                            const action = pivotGroup.mixer.clipAction(clip);
-                            action.play();
-                            pivotGroup.currentAction = action;
-                        }
-                    }
-                }
-
+                // --- 5. SETUP MATERIAL (TEXTURE & SHADER) ---
                 const manualGlassList = [];
-
                 model.traverse((node) => {
-                    // --- 1. SETUP VISUAL (KHUSUS MESH) ---
-                    // Group tidak punya material/geometry, jadi jangan diproses disini
                     if (node.isMesh) {
-                        // NOTE Hanya render depan mata
-                        node.frustumCulled = true;
+                        // Pastikan Monster di-render depan belakang agar tidak bolong saat animasi
+                        if (cfg.isMonster) {
+                            node.material.side = THREE.DoubleSide;
+                            node.material.shadowSide = THREE.DoubleSide;
+                        }
+
+                        node.frustumCulled = true; // Default nyala (nanti dimatikan sebentar di blok monster)
 
                         if (node.geometry) {
                             node.geometry.computeBoundingSphere();
@@ -449,31 +331,28 @@ export function _loadModels(world, state) {
                             node.castShadow = true;
                             node.receiveShadow = true;
 
-
                             let isInsideKitchen = false;
                             let parentCheck = node.parent;
-
-                            // Loop naik ke atas sampai ketemu root scene atau ketemu nama "Kitchen"
                             while (parentCheck) {
                                 if (parentCheck.name && parentCheck.name.toLowerCase().includes('kitchen')) {
                                     isInsideKitchen = true;
-                                    break; // Ketemu! Berhenti loop
+                                    break;
                                 }
                                 parentCheck = parentCheck.parent;
                             }
 
-                            if (isInsideKitchen) {
-                                node.material.side = THREE.FrontSide;       // Cuma render sisi depan
-                                node.material.shadowSide = THREE.FrontSide;
-                            } else {
-                                node.material.side = THREE.DoubleSide;      // Render bolak-balik
-                                node.material.shadowSide = THREE.DoubleSide;
+                            if (!cfg.isMonster) { // Monster jangan kena logic tembok
+                                if (isInsideKitchen) {
+                                    node.material.side = THREE.FrontSide;
+                                    node.material.shadowSide = THREE.FrontSide;
+                                } else {
+                                    node.material.side = THREE.DoubleSide;
+                                    node.material.shadowSide = THREE.DoubleSide;
+                                }
+                                node.material.polygonOffset = true;
+                                node.material.polygonOffsetFactor = 1;
+                                node.material.polygonOffsetUnits = 1;
                             }
-
-
-                            node.material.polygonOffset = true;
-                            node.material.polygonOffsetFactor = 1;
-                            node.material.polygonOffsetUnits = 1;
                         }
 
                         if (node.material.shininess) node.material.shininess = 0;
@@ -487,7 +366,7 @@ export function _loadModels(world, state) {
                     // --- 2. LOGIC SELEKSI (MESH & GROUP) ---
                     // Kita jalankan logic ini jika node adalah Mesh ATAU Group yang punya anak
 
-                    if (false) { // NOTE (ENABLE_CHILD_SELECTION)
+                    if (true) { // NOTE (ENABLE_CHILD_SELECTION)
 
                         // KASUS A: MESH (Punya Geometri -> Bisa difilter pakai Radius)
                         if (node.isMesh && node.geometry) {

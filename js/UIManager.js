@@ -57,7 +57,7 @@ export class UIManager {
         this._buildSaveLoadGUI();
         this._buildDebugGUI();
         this.createCinematicButton();
-        
+
         this._initResizer();
         this.cameraFolder.open();
         this.gizmoFolder.open();
@@ -71,14 +71,14 @@ export class UIManager {
         const settings = {
             showColliders: false,
             showPlayerBody: true,
-            showFPS:true
+            showFPS: true
         };
 
         this.debugFolder.add(this.world, 'fps')
             .name('⚡ Current FPS') // Nama Label
             .listen()              // Wajib: Agar angkanya gerak sendiri
             .disable();            // Disable: Agar user gabisa edit angkanya, cuma lihat
-        
+
         this.debugFolder.add(settings, 'showColliders').name('Show ALL Mesh Colliders').onChange((show) => {
             if (show) {
                 // Bersihkan dulu kalau ada sisa
@@ -303,45 +303,45 @@ export class UIManager {
         this.debugFolder.add(leakDetector, 'findLeakers').name('🚨 FIND LIGHT LEAKERS');
     }
 
-            // Panggil ini di _init() atau constructor
-        createCinematicButton() {
-            // Buat tombol HTML floating
-            const btn = document.createElement('button');
-            btn.id = 'cinematic-toggle-btn';
-            btn.innerText = '🎥 Switch View (FPS/Orbit)';
+    // Panggil ini di _init() atau constructor
+    createCinematicButton() {
+        // Buat tombol HTML floating
+        const btn = document.createElement('button');
+        btn.id = 'cinematic-toggle-btn';
+        btn.innerText = '🎥 Switch View (FPS/Orbit)';
 
-            // Styling agar mojok di kiri atas dan terlihat jelas
-            Object.assign(btn.style, {
-                position: 'absolute',
-                top: '10px',
-                left: '10px',
-                zIndex: '9999',
-                padding: '10px 20px',
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                color: 'white',
-                border: '1px solid white',
-                cursor: 'pointer',
-                display: 'none', // Default sembunyi
-                fontFamily: 'monospace',
-                fontSize: '14px'
-            });
+        // Styling agar mojok di kiri atas dan terlihat jelas
+        Object.assign(btn.style, {
+            position: 'absolute',
+            top: '10px',
+            left: '10px',
+            zIndex: '9999',
+            padding: '10px 20px',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            border: '1px solid white',
+            cursor: 'pointer',
+            display: 'none', // Default sembunyi
+            fontFamily: 'monospace',
+            fontSize: '14px'
+        });
 
-            btn.onclick = () => {
-                if (this.storyManager) {
-                    this.storyManager.switchViewMode(); // Fungsi baru di StoryManager
-                }
-            };
-
-            document.body.appendChild(btn);
-            this.cinematicBtn = btn;
-        }
-
-        // Fungsi untuk StoryManager mengatur tombol ini
-        setCinematicButtonVisible(visible) {
-            if (this.cinematicBtn) {
-                this.cinematicBtn.style.display = visible ? 'block' : 'none';
+        btn.onclick = () => {
+            if (this.storyManager) {
+                this.storyManager.switchViewMode(); // Fungsi baru di StoryManager
             }
+        };
+
+        document.body.appendChild(btn);
+        this.cinematicBtn = btn;
+    }
+
+    // Fungsi untuk StoryManager mengatur tombol ini
+    setCinematicButtonVisible(visible) {
+        if (this.cinematicBtn) {
+            this.cinematicBtn.style.display = visible ? 'block' : 'none';
         }
+    }
 
     _clearColliderHelpers() {
         this.colliderHelpers.forEach(helper => {
@@ -425,7 +425,8 @@ export class UIManager {
                 if (object.userData.isWaypoint) {
                     console.log(`%c[COPY KODE INI KE SceneSetup.js]`, "color: #00ff00; font-weight: bold;");
                     // Format output yang diminta:
-                    console.log(`_createCinematicWaypoint(world, state, "${object.name}", \n    new THREE.Vector3(${x}, ${y}, ${z}), \n    new THREE.Vector3(${rx}, ${ry}, ${rz}) // Rotasi (Deg)\n);`);
+                    console.log(`Waypoint "${object.name}", \n
+                        { x:${x}, y:${y}, z:${z} }, { x:${rx}, y:${ry}, z:${rz} })`);
                 } else {
                     console.log(`Position: new THREE.Vector3(${x}, ${y}, ${z})`);
                     console.log(`Rotation: new THREE.Vector3(${rx}, ${ry}, ${rz})`);
@@ -609,18 +610,22 @@ export class UIManager {
             });
         }
 
-        // [FIX KLIK ROW]
         content.addEventListener('click', (e) => {
             e.stopPropagation();
 
-            // 1. Select Objek (Meski dia Container/Parent)
+            if (object.userData && object.userData.isWaypoint) {
+                console.log(`✨ Hierarchy Click: Teleporting to ${object.name}`);
+
+                if (this.storyManager) {
+                    this.storyManager._instantSetPosition(object.name);
+                }
+            }
+
             if (this.stateManager && isSelectable) {
                 this.stateManager.setSelectedObject(object);
             }
 
-            // 2. Toggle Children (Buka/Tutup) jika punya anak
             if (hasVisibleChildren) {
-                // Logic Toggle: Kalau sudah open -> close. Kalau belum -> open.
                 item.classList.toggle('open');
                 toggle.textContent = item.classList.contains('open') ? '▼' : '►';
             }

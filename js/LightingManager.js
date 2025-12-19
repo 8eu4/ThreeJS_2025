@@ -104,6 +104,19 @@ export class LightingManager {
     }
 
     _setupRoomLights() {
+        this._createSpotLight(
+            'default',   // ID
+            new THREE.Vector3(0, 20, -20),   // start
+            new THREE.Vector3(0, 20, 15), // end
+            "#FFFFFF",          // Warna
+            2200,              // Intensitas
+            50,               // Distance
+            Math.PI / 2,       // Angle 
+            0.5,                // Penumbra 
+            true
+        );
+
+
         // --- POINT LIGHTS (BOLA) ---
         this._createPointLight('light_Bedroom_1', "BedroomLight1", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
         this._createPointLight('light_Bedroom_2', "BedroomLight2", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
@@ -113,8 +126,9 @@ export class LightingManager {
         this._createPointLight('light_Bedroom_6', "BedroomLight6", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
         this._createPointLight('light_Bedroom_7', "BedroomLight7", new THREE.Vector3(0, 0, 0), 0xffaa00, 40);
 
-        this._createPointLight('light_kitchen_1', "KitchenLight1", new THREE.Vector3(0, 0, 0), "#9f9f9fff", 40);
-        this._createPointLight('light_kitchen_2', "KitchenLight2", new THREE.Vector3(0, 0, 0), "#9f9f9fff", 40);
+
+        this._createPointLight('light_kitchen_1', "KitchenLight1", new THREE.Vector3(0, 0, 0), 0xe6dfd8ff, 80);
+        this._createPointLight('light_kitchen_2', "KitchenLight2", new THREE.Vector3(0, 0, 0), 0xe6dfd8ff, 80);
 
         // --- CORRIDOR LIGHTS ---
         // this._createPointLight('light_corridor_1', "CorridorLight1", new THREE.Vector3(0, 0, 0), 0xffaa00, 20);
@@ -169,7 +183,7 @@ export class LightingManager {
 
         this._createSpotLight(
             'light_corridor_window3',   // ID
-            new THREE.Vector3(85, 22, 29), 
+            new THREE.Vector3(85, 22, 29),
             new THREE.Vector3(110, 22, 29),
             "#575252",          // Warna
             2200,              // Intensitas
@@ -499,6 +513,8 @@ export class LightingManager {
     }
 
     setFlicker(lightId, isActive, interval = 0.05, glitchChance = 0.1) {
+        if (!isActive) return;
+
         const light = this.lights[lightId];
         if (light) {
             light.userData.isFlickering = isActive;

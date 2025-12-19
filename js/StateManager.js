@@ -33,7 +33,7 @@ export class StateManager {
         }
     }
 
-setSelectedObject(obj) {
+    setSelectedObject(obj) {
         const oldSelection = this.selectedObject;
 
         // 1. Matikan Highlight Lama (Recursive)
@@ -44,7 +44,7 @@ setSelectedObject(obj) {
                 }
             });
         }
-        
+
         if (this.ui) this.ui.hideActiveGUIs();
 
         // 2. Set Baru
@@ -65,6 +65,30 @@ setSelectedObject(obj) {
             this.ui.updateHierarchyHighlight();
             this.ui.updateTransformControls(this.selectedObject, this.draggableObjects);
         }
+        this._handleWaypointIsolation(this.selectedObject);
+    }
+
+    _handleWaypointIsolation(target) {
+        // Cek apakah target yang dipilih adalah Waypoint Cinematic?
+        const isTargetWaypoint = target && target.userData && target.userData.isWaypoint;
+
+        // Loop ke semua objek yang bisa diseleksi (termasuk semua waypoint)
+        this.allSelectableObjects.forEach(obj => {
+            // Kita hanya ingin memproses sesama Waypoint
+            if (obj.userData && obj.userData.isWaypoint) {
+                
+                if (isTargetWaypoint) {
+                    // MODE FOKUS: Ada waypoint dipilih
+                    // Jika ini objek yang dipilih -> TAMPILKAN
+                    // Jika ini objek lain -> SEMBUNYIKAN
+                    obj.visible = (obj === target);
+                } else {
+                    // MODE RESET: Tidak ada waypoint dipilih (Deselect / Pilih Monster dll)
+                    // Tampilkan semua kembali biar gampang dicari lagi
+                    obj.visible = true;
+                }
+            }
+        });
     }
 
     deleteSelectedObject() {
