@@ -154,6 +154,18 @@ export function _loadModels(world, state) {
             fixOrigin: false,
             isMonster: true     // <--- TANDA MONSTER
         },
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Long_Corridor',
+            position: new THREE.Vector3(80, 3, -19),
+            scale: new THREE.Vector3(5, 5, 5),
+            rotation: new THREE.Euler(0, 0, 0),
+
+            animName: 'Creature_armature|roar',
+            visible: false,     // Sembunyi
+            fixOrigin: false,
+            isMonster: true     // <--- TANDA MONSTER
+        },
         // {
         //     url: './Models/nightmare_creature_1.glb',
         //     name: 'Ghost_Corridor_Chasing', 

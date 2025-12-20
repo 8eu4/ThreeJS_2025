@@ -103,6 +103,17 @@ export class LightingManager {
         }
     }
 
+    setFlashlight(isActive) {
+        const flashlight = this.lights['player_flashlight'];
+        if (flashlight) {
+            // Gunakan intensitas 500 sesuai settingan toggle Anda sebelumnya
+            flashlight.intensity = isActive ? 500 : 0;
+            
+            // Opsional: Bunyi klik atau log
+            // console.log(`🔦 Flashlight: ${isActive ? 'ON' : 'OFF'}`);
+        }
+    }
+
     _setupRoomLights() {
         this._createSpotLight(
             'default',   // ID
