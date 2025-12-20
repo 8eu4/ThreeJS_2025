@@ -138,7 +138,7 @@ export class StoryManager {
         
         await this.runParallel([
             this.animateDoor("Door_ToKitchen", 0, 1),
-            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x:-33.17, y:10.91, z:-53.99 }, { x:-21.00, y:-31.00 }), 4, "in")
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x:-33.17, y:10.91, z:-53.99 }, { x:-21.00, y:-31.00 }), 4, "power2.in")
         ]);
 
         await this.runParallel([
@@ -147,36 +147,40 @@ export class StoryManager {
         ]);
 
         await this._wait(1);
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright", { x:-33.17, y:10.91, z:-53.99 }, { y: -123.6 }), 0.5, "in");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright", { x:-33.17, y:10.91, z:-53.99 }, { y: -123.6 }), 0.5, "power2.in");
         await this._wait(1);
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright2", { x:-33.17, y:10.91, z:-53.99 }, { y:150 }), 0.3, "none");
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright3", { x:-33.17, y:10.91, z:-53.99 }, { y:120 }), 0.8, "none");
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_lookforward", { x:-33.17, y:10.91, z:-53.99 }, { y: 0 }), 0.5);
-        await this._wait(1);
+        await this._waitAndRun(0, () => this.setMonsterVisibility("Ghost_Kitchen_Window", true)), // Hantu Muncul
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseleft", { x:-33.17, y:10.91, z:-53.99 }, { y:30 }), 3, "power2.in", true);
+        // await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_lookforward", { x:-33.17, y:10.91, z:-53.99 }, { y: 0 }), 0.5);
         
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_backaway", { x: -31.02, y: 10.91, z: -50.41 }, { y: 0 }), 3);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_backaway", { x: -31.02, y: 10.91, z: -49 }, { y: 30 }), 2, "power2.inOut");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_felldown1", { x:-30.71, y:10.30, z:-48.65 }, { x:18.70, y:30.00, z:-20.40 }), 0.4, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_felldown2", { x:-30.41, y:9.39, z:-47.94 }, { x:48.00, y:30.00, z:-54.60 }), 0.3, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_felldown3", { x:-29.49, y:7.90, z:-47.89 }, { x:-5.70, y:-10.60, z:-88.80 }), 0.4, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_felldown4", { x:-28.37, y:4.15, z:-47.67 }, { x:-5.70, y:-10.60, z:-88.80 }), 0.3, "none");
+        
+        // await this._wait(1);
+        // await this._waitAndRun(0.5, () => this.playerMoveToWaypoint(
+        //     this.defineWaypoint("Scene03_confuseright_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: -70 }), 0.5, "none"
+        // ));
+        // this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseleft_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: 70 }), 0.5, "none"),
+        // this._waitAndRun(0.5, () => this.playerMoveToWaypoint("Scene03_confuseleft_2", 1.5, "none")),
+        // this._waitAndRun(1.5, () => this.playerMoveToWaypoint("Scene03_backaway", 0.5, "none")),
 
-        await this._waitAndRun(0.5, () => this.playerMoveToWaypoint(
-            this.defineWaypoint("Scene03_confuseright_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: -70 }), 0.5, "none"
-        ));
-
-        await this.runParallel([
-            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseleft_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: 70 }), 0.5, "none"),
-            this._waitAndRun(0.5, () => this.playerMoveToWaypoint("Scene03_confuseleft_2", 1.5, "none")),
-            this._waitAndRun(1.5, () => this.playerMoveToWaypoint("Scene03_backaway", 0.5, "none")),
-            this._waitAndRun(1.6, () => this.setMonsterVisibility("Ghost_Kitchen_Window", true)), // Hantu Muncul
-            this._waitAndRun(3, () => this.playerMoveToWaypoint(
-                this.defineWaypoint("Scene03_scared_1", { x: -33.47, y: 10.91, z: -48.18 }, { x: -59, y: -59 }), 0.5, "power2.out"
-            )),
-            this._waitAndRun(3.2, () => this.setEyeOpenness(0, 0.5)),
-        ]);
+        // await this.runParallel([
+        //     this._waitAndRun(3, () => this.playerMoveToWaypoint(
+        //         this.defineWaypoint("Scene03_scared_1", { x: -33.47, y: 10.91, z: -48.18 }, { x: -59, y: -59 }), 0.5, "power2.out"
+        //     )),
+        //     this._waitAndRun(3.2, () => this.setEyeOpenness(0, 0.5)),
+        // ]);
 
         await this._wait(2);
 
         await this.runParallel([
             this.setMonsterVisibility("Ghost_Kitchen_Window", false),
             this.setMonsterVisibility("Ghost_Kitchen", true),
-            this.setEyeOpenness(1, 2),
+            // this.setEyeOpenness(1, 2),
             this._waitAndRun(2.5, () => this.playerMoveToWaypoint(
                 this.defineWaypoint("Scene03_scared_2", { x: -30.41, y: 10.91, z: -48.18 }, { x: 20, y: 54 }), 3, "power2.in"
             )),
@@ -223,7 +227,7 @@ export class StoryManager {
 
         // --- MULAI SEQUENCE ---
         // await this.scene01_WakeUp();
-        await this.scene02_BedroomCorridor();
+        // await this.scene02_BedroomCorridor();
         await this.scene03_Kitchen();
         // --- SELESAI ---
 
@@ -306,7 +310,7 @@ export class StoryManager {
         }
     }
 
-    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut") {
+    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut", useLongestPath = false) {
         if (this.isSetupMode) return Promise.resolve();
 
         return new Promise(resolve => {
@@ -319,27 +323,27 @@ export class StoryManager {
             // 1. Ambil State Awal
             const startRigY = rig.rotation.y;
             const startCamX = cam.rotation.x;
-            const startCamZ = cam.rotation.z;
             const startPos = rig.position.clone();
 
-            // 2. Ambil Target dari Waypoint (Pastikan order YXZ)
+            // 2. Ambil Target dari Waypoint
             const targetEuler = new THREE.Euler().setFromQuaternion(waypoint.quaternion, 'YXZ');
 
-            // --- LOGIKA SHORTEST PATH (ANTI MUTER JAUH) ---
-            // Hitung selisih sudut Y (Badan)
-            let diffY = targetEuler.y - startRigY;
-            while (diffY < -Math.PI) diffY += Math.PI * 2;
-            while (diffY > Math.PI) diffY -= Math.PI * 2;
+            // --- LOGIKA DINAMIS: TERDEKAT VS TERJAUH ---
+            const calculateDiff = (target, start, longest) => {
+                let diff = target - start;
+                // Normalisasi ke range -PI sampai PI (Shortest Path)
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
 
-            // Hitung selisih sudut X (Kepala)
-            let diffX = targetEuler.x - startCamX;
-            while (diffX < -Math.PI) diffX += Math.PI * 2;
-            while (diffX > Math.PI) diffX -= Math.PI * 2;
+                if (longest) {
+                    // Jika ingin jalur terjauh, putar balik arah selisihnya
+                    diff = diff > 0 ? diff - Math.PI * 2 : diff + Math.PI * 2;
+                }
+                return diff;
+            };
 
-            // Hitung selisih sudut Z (Roll)
-            let diffZ = targetEuler.z - startCamZ;
-            while (diffZ < -Math.PI) diffZ += Math.PI * 2;
-            while (diffZ > Math.PI) diffZ -= Math.PI * 2;
+            const diffY = calculateDiff(targetEuler.y, startRigY, useLongestPath);
+            const diffX = calculateDiff(targetEuler.x, startCamX, false); // Biasanya X tidak perlu terjauh
 
             // 3. Eksekusi Animasi
             const proxy = { t: 0 };
@@ -349,19 +353,16 @@ export class StoryManager {
                 ease: easeType,
                 onUpdate: () => {
                     const alpha = proxy.t;
-
-                    // Posisi
                     rig.position.lerpVectors(startPos, waypoint.position, alpha);
 
-                    // Rotasi (Shortest Path Terjamin)
+                    // Terapkan rotasi berdasarkan selisih yang sudah dihitung
                     rig.rotation.y = startRigY + diffY * alpha;
                     cam.rotation.x = startCamX + diffX * alpha;
-                    cam.rotation.z = startCamZ + diffZ * alpha;
                 },
                 onComplete: resolve
             });
         });
-    }
+    }   
 
     switchViewMode() {
         // Toggle Mode
