@@ -350,21 +350,26 @@ export class CameraManager {
             const obj = allObjects[i];
             let parent = obj;
             let isMonster = false;
+            let monsterObj = null;
             while (parent && parent.type !== 'Scene') {
                 if (parent.userData && parent.userData.isMonster) {
                     isMonster = true;
                     if (!parent.visible) isMonster = false;
+                    monsterObj = parent;
                     break;
                 }
                 parent = parent.parent;
             }
-            if (isMonster) {
-                const dx = this.cameraRig.position.x - parent.position.x;
-                const dz = this.cameraRig.position.z - parent.position.z;
+            if (monsterObj) {
+                if (monsterObj.scale.x < 0.1) continue; 
+
+                const dx = this.cameraRig.position.x - monsterObj.position.x;
+                const dz = this.cameraRig.position.z - monsterObj.position.z;
                 const currentDistSq = dx * dx + dz * dz;
-                const ndx = this.tempNextPos.x - parent.position.x;
-                const ndz = this.tempNextPos.z - parent.position.z;
+                const ndx = this.tempNextPos.x - monsterObj.position.x;
+                const ndz = this.tempNextPos.z - monsterObj.position.z;
                 const nextDistSq = ndx * ndx + ndz * ndz;
+
                 if (nextDistSq < monsterRadiusSq && nextDistSq < currentDistSq) return true;
             }
         }

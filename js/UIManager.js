@@ -787,9 +787,9 @@ export class UIManager {
         };
 
         const posFolder = folder.addFolder('Position');
-        posFolder.add(obj.position, 'x').step(1).decimals(2).listen().onFinishChange(onFinishChange);
-        posFolder.add(obj.position, 'y').step(1).decimals(2).listen().onFinishChange(onFinishChange);
-        posFolder.add(obj.position, 'z').step(1).decimals(2).listen().onFinishChange(onFinishChange);
+        posFolder.add(obj.position, 'x').step(1).decimals(0).listen().onFinishChange(onFinishChange);
+        posFolder.add(obj.position, 'y').step(1).decimals(0).listen().onFinishChange(onFinishChange);
+        posFolder.add(obj.position, 'z').step(1).decimals(0).listen().onFinishChange(onFinishChange);
         posFolder.open();
 
         if (!obj.isPointLight && !obj.isAmbientLight) {
@@ -803,16 +803,16 @@ export class UIManager {
             };
 
             const rotFolder = folder.addFolder('Rotation');
-            rotFolder.add(rotationInDegrees, 'x', -180, 180).step(1).decimals(2).listen().onFinishChange(onFinishChange);
-            rotFolder.add(rotationInDegrees, 'y', -180, 180).step(1).decimals(2).listen().onFinishChange(onFinishChange);
-            rotFolder.add(rotationInDegrees, 'z', -180, 180).step(1).decimals(2).listen().onFinishChange(onFinishChange);
+            rotFolder.add(rotationInDegrees, 'x', -180, 180).step(0.1).decimals(1).listen().onFinishChange(onFinishChange);
+            rotFolder.add(rotationInDegrees, 'y', -180, 180).step(0.1).decimals(1).listen().onFinishChange(onFinishChange);
+            rotFolder.add(rotationInDegrees, 'z', -180, 180).step(0.1).decimals(1).listen().onFinishChange(onFinishChange);
         }
 
         if (!obj.isLight) {
             const scaleFolder = folder.addFolder('Scale');
-            scaleFolder.add(obj.scale, 'x', 0.01).step(0.01).decimals(2).listen().onFinishChange(onFinishChange);
-            scaleFolder.add(obj.scale, 'y', 0.01).step(0.01).decimals(2).listen().onFinishChange(onFinishChange);
-            scaleFolder.add(obj.scale, 'z', 0.01).step(0.01).decimals(2).listen().onFinishChange(onFinishChange);
+            scaleFolder.add(obj.scale, 'x', 0.01).step(0.1).decimals(1).listen().onFinishChange(onFinishChange);
+            scaleFolder.add(obj.scale, 'y', 0.01).step(0.1).decimals(1).listen().onFinishChange(onFinishChange);
+            scaleFolder.add(obj.scale, 'z', 0.01).step(0.1).decimals(1).listen().onFinishChange(onFinishChange);
         }
 
         return folder;

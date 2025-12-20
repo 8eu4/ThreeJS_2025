@@ -84,7 +84,7 @@ export class StoryManager {
         
         this._blinkSequence();
 
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksidedown", { x: -70.45, y: 8.54, z: -40.44 }, { x: -90, y: 90 }), 3.0);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksidedown", { x: -70.45, y: 8.54, z: -40.44 }, { x: -90, y: 90}), 3.0);
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksideup", { x: -71.17, y: 10.91, z: -40.59 }, { y: 150 }), 2.0);
         
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_gotodoor_1", { x: -84.53, y: 10.91, z: -22.77 }, { y: 150 }), 6.0, "none");
@@ -116,6 +116,7 @@ export class StoryManager {
 
         // await this.playerMoveToWaypoint(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }), 2, "none");
 
+        //debug
         this._instantSetPosition(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }));
 
         await this.runParallel([
@@ -133,13 +134,11 @@ export class StoryManager {
         if (!this.isSetupMode) console.log("--- Scene 3 ---");
         if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
 
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_enterkitchen", {x:-33.17, y:10.91, z:-53.99}, "water_bottle"),4);
-
-        //NOTE debug
-        // this._instantSetPosition(this.defineWaypoint("Scene03_enterkitchen", {x:-33.17, y:10.91, z:-53.99}, "water_bottle"));
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_enterkitchen", { x:-37.11, y:10.91, z:-53.99 }, { y: -90 }), 4, "none");
+        
         await this.runParallel([
             this.animateDoor("Door_ToKitchen", 0, 1),
-            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x: -31.02, y: 10.91, z: -54.49 }, { x: -16 }), 3),
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x:-33.17, y:10.91, z:-53.99 }, { x:-21.00, y:-31.00 }), 4, "in")
         ]);
 
         await this.runParallel([
@@ -148,10 +147,11 @@ export class StoryManager {
         ]);
 
         await this._wait(1);
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright", { x: -31.02, y: 10.91, z: -54.49 }, { y: -55 }), 0.5);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright", { x:-33.17, y:10.91, z:-53.99 }, { y: -123.6 }), 0.5, "in");
         await this._wait(1);
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseleft", { x: -31.02, y: 10.91, z: -54.49 }, { y: 72 }), 0.5);
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_lookforward", { x: -31.02, y: 10.91, z: -54.49 }, { y: 0 }), 0.5);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright2", { x:-33.17, y:10.91, z:-53.99 }, { y:150 }), 0.3, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseright3", { x:-33.17, y:10.91, z:-53.99 }, { y:120 }), 0.8, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_lookforward", { x:-33.17, y:10.91, z:-53.99 }, { y: 0 }), 0.5);
         await this._wait(1);
         
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_backaway", { x: -31.02, y: 10.91, z: -50.41 }, { y: 0 }), 3);
@@ -237,75 +237,130 @@ export class StoryManager {
     }
 
     defineWaypoint(name, pos = {}, rot = {}) {
-        // 1. Cek Apakah Sudah Ada?
-        const existing = this.scene.getObjectByName(name);
-        if (existing) return name;
-
-        if (!this._waypointGeometry) {
-            this._waypointGeometry = new THREE.BoxGeometry(2, 2, 4);
-            this._waypointMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffff00, wireframe: true, transparent: true, opacity: 0.5
-            });
-        }
-        const waypoint = new THREE.Mesh(this._waypointGeometry, this._waypointMaterial);
-
-        // --- ATUR POSISI ---
-        const px = pos.x ?? 0;
-        const py = pos.y ?? 0;
-        const pz = pos.z ?? 0;
-        waypoint.position.set(px, py, pz);
-
-        // --- ATUR ROTASI (LOGIKA ANTI-ERROR) ---
+        let waypoint = this.scene.getObjectByName(name);
         
-        // KASUS A: STRING (NAMA OBJEK)
-        if (typeof rot === 'string') {
-            // 1. Simpan nama target di 'userData' biar ingat
-            waypoint.userData.lookAtTargetName = rot; 
-
-            // 2. Coba cari sekarang (siapa tau udah ada)
-            const targetObj = this.scene.getObjectByName(rot);
-            if (targetObj) {
-                waypoint.lookAt(targetObj.position);
-            } else {
-                // Kalau belum ada (masih loading), jangan Error/Warn. Biarkan 0,0,0 dulu.
-                // Nanti saat _instantSetPosition atau playerMoveToWaypoint dipanggil, kita update rotasinya.
-                // console.log(`⏳ Waypoint '${name}' menunggu objek '${rot}' loading...`);
+        if (!waypoint) {
+            if (!this._waypointGeometry) {
+                this._waypointGeometry = new THREE.BoxGeometry(1, 1.5, 1);
+                this._waypointMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffff00, wireframe: true, transparent: true, opacity: 0.5
+                });
             }
-        } 
-        // KASUS B: VECTOR3
-        else if (rot.isVector3) {
-            waypoint.lookAt(rot);
-        }
-        // KASUS C: MANUAL EULER
-        else {
-            const rx = rot.x ?? 0;
-            const ry = rot.y ?? 0;
-            const rz = rot.z ?? 0;
-            waypoint.rotation.set(THREE.MathUtils.degToRad(rx), THREE.MathUtils.degToRad(ry), THREE.MathUtils.degToRad(rz));
-        }
-        
-        // --- SETUP LAINNYA (SAMA SEPERTI SEBELUMNYA) ---
-        waypoint.name = name;
-        waypoint.userData.isWaypoint = true;
-
-        const dir = new THREE.Vector3(0, 0, -1);
-        const arrowHelper = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 5, 0x00ffff);
-        waypoint.add(arrowHelper);
-
-        // Logic Visibility (FPS vs Orbit)
-        if (this.currentViewMode === 'FPS') {
-            waypoint.visible = false;
-        } else {
-            waypoint.visible = true;
+            waypoint = new THREE.Mesh(this._waypointGeometry, this._waypointMaterial);
+            waypoint.name = name;
+            waypoint.userData.isWaypoint = true;
+            waypoint.rotation.order = 'YXZ'; // Penting agar selaras dengan CameraManager
+            
+            const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, 0), 3, 0x00ffff);
+            waypoint.add(arrow);
+            
+            this.world.add(waypoint);
+            if (this.stateManager) {
+                this.stateManager.addObject(waypoint, { isSelectable: true, isDraggable: true });
+            }
         }
 
-        this.world.add(waypoint);
+        waypoint.position.set(pos.x ?? 0, pos.y ?? 0, pos.z ?? 0);
 
-        if (this.stateManager) {
-            this.stateManager.addObject(waypoint, { isSelectable: true, isDraggable: true });
-        }
+        // Hanya gunakan rotasi angka (x, y, z) dari Gizmo
+        waypoint.rotation.set(
+            THREE.MathUtils.degToRad(rot.x ?? 0),
+            THREE.MathUtils.degToRad(rot.y ?? 0),
+            THREE.MathUtils.degToRad(rot.z ?? 0)
+        );
 
+        waypoint.visible = (this.currentViewMode !== 'FPS');
         return name;
+    }
+
+    _instantSetPosition(waypointName) {
+        if (this.isSetupMode) return;
+        const waypoint = this.scene.getObjectByName(waypointName);
+        if (!waypoint) return;
+
+        const rig = this.cameraManager.cameraRig;
+        const cam = this.cameraManager.camera;
+
+        // Ambil orientasi dari Waypoint (Gizmo)
+        const e = new THREE.Euler().setFromQuaternion(waypoint.quaternion, 'YXZ');
+
+        // A. LOGIKA UNTUK MODE FPS / RIG
+        rig.position.copy(waypoint.position);
+        rig.rotation.set(0, e.y, 0, 'YXZ');
+        cam.rotation.set(e.x, 0, e.z, 'YXZ');
+
+        // B. LOGIKA UNTUK MODE ORBIT (PENTING!)
+        if (this.currentViewMode === 'ORBIT') {
+            // Pindahkan kamera tepat ke posisi waypoint
+            cam.position.copy(waypoint.position);
+            cam.quaternion.copy(waypoint.quaternion);
+
+            // Mundurkan sedikit agar kita tidak berada di dalam "box" waypoint
+            cam.translateZ(0.5); 
+
+            // Update Pivot OrbitControls agar berputar di titik waypoint tersebut
+            if (this.cameraManager.orbitControls) {
+                this.cameraManager.orbitControls.target.copy(waypoint.position);
+                this.cameraManager.orbitControls.update();
+            }
+        }
+    }
+
+    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut") {
+        if (this.isSetupMode) return Promise.resolve();
+
+        return new Promise(resolve => {
+            const waypoint = this.scene.getObjectByName(waypointName);
+            if (!waypoint) { resolve(); return; }
+
+            const rig = this.cameraManager.cameraRig;
+            const cam = this.cameraManager.camera;
+
+            // 1. Ambil State Awal
+            const startRigY = rig.rotation.y;
+            const startCamX = cam.rotation.x;
+            const startCamZ = cam.rotation.z;
+            const startPos = rig.position.clone();
+
+            // 2. Ambil Target dari Waypoint (Pastikan order YXZ)
+            const targetEuler = new THREE.Euler().setFromQuaternion(waypoint.quaternion, 'YXZ');
+
+            // --- LOGIKA SHORTEST PATH (ANTI MUTER JAUH) ---
+            // Hitung selisih sudut Y (Badan)
+            let diffY = targetEuler.y - startRigY;
+            while (diffY < -Math.PI) diffY += Math.PI * 2;
+            while (diffY > Math.PI) diffY -= Math.PI * 2;
+
+            // Hitung selisih sudut X (Kepala)
+            let diffX = targetEuler.x - startCamX;
+            while (diffX < -Math.PI) diffX += Math.PI * 2;
+            while (diffX > Math.PI) diffX -= Math.PI * 2;
+
+            // Hitung selisih sudut Z (Roll)
+            let diffZ = targetEuler.z - startCamZ;
+            while (diffZ < -Math.PI) diffZ += Math.PI * 2;
+            while (diffZ > Math.PI) diffZ -= Math.PI * 2;
+
+            // 3. Eksekusi Animasi
+            const proxy = { t: 0 };
+            gsap.to(proxy, {
+                t: 1,
+                duration: duration,
+                ease: easeType,
+                onUpdate: () => {
+                    const alpha = proxy.t;
+
+                    // Posisi
+                    rig.position.lerpVectors(startPos, waypoint.position, alpha);
+
+                    // Rotasi (Shortest Path Terjamin)
+                    rig.rotation.y = startRigY + diffY * alpha;
+                    cam.rotation.x = startCamX + diffX * alpha;
+                    cam.rotation.z = startCamZ + diffZ * alpha;
+                },
+                onComplete: resolve
+            });
+        });
     }
 
     switchViewMode() {
@@ -405,193 +460,8 @@ export class StoryManager {
         }
     }
 
-    _instantSetPosition(waypointName) {
-        if (this.isSetupMode) return;
 
-        const waypoint = this.scene.getObjectByName(waypointName);
-        if (waypoint) {
 
-            if (waypoint.userData.lookAtTargetName) {
-                const target = this.scene.getObjectByName(waypoint.userData.lookAtTargetName);
-                if (target) {
-                    waypoint.lookAt(target.position); // Update arah pandang real-time
-                }
-            }
-
-            // 1. Pindahkan Rig (Badan Pemain) - Ini yang menjalankan animasi
-            this.cameraManager.cameraRig.position.copy(waypoint.position);
-            this.cameraManager.cameraRig.rotation.y = waypoint.rotation.y;
-            this.cameraManager.camera.rotation.x = waypoint.rotation.x;
-            this.cameraManager.cameraShakeGroup.rotation.z = waypoint.rotation.z;
-
-            // 2. [FIX BARU] Cek jika sedang Free Roam (ORBIT), Kamera harus ikut pindah!
-            // Agar tidak ketinggalan saat Player teleport di awal scene.
-            if (this.currentViewMode === 'ORBIT') {
-                const cam = this.cameraManager.camera;
-
-                // 1. SAMAKAN DULU arah kamera dengan arah Waypoint
-                // (Supaya sumbu "Mundur/Maju"-nya sama dengan arah hadap player)
-                cam.position.copy(waypoint.position);
-                cam.rotation.copy(waypoint.rotation);
-
-                // 2. GESER BERDASARKAN SUMBU DIRI SENDIRI (Local Axis)
-                // Ini fungsi bawaan Three.js yang Anda cari.
-                cam.translateY(0);  // Naik ke atas (Sumbu Y lokal)
-                cam.translateZ(0.1); // Mundur ke belakang (Sumbu Z lokal positif = mundur)
-
-                // 3. Update Pivot Orbit
-                if (this.cameraManager.orbitControls) {
-                    this.cameraManager.orbitControls.target.copy(waypoint.position);
-                    this.cameraManager.orbitControls.update();
-                }
-            }
-        } else {
-            console.warn(`⚠️ Waypoint '${waypointName}' tidak ditemukan untuk instant position.`);
-        }
-    }
-
-    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut") {
-        if (this.isSetupMode) return Promise.resolve();
-
-        return new Promise(resolve => {
-            const waypoint = this.scene.getObjectByName(waypointName);
-            if (!waypoint) { 
-                console.error(`❌ Waypoint '${waypointName}' tidak ditemukan!`); 
-                resolve(); 
-                return; 
-            }
-
-            const rig = this.cameraManager.cameraRig;
-            const cam = this.cameraManager.camera;
-            const neck = this.cameraManager.cameraShakeGroup;
-
-            // 1. SIMPAN DATA AWAL (PENTING BIAR GAK SNAP)
-            const startRigQuat = rig.quaternion.clone();
-            const startHeadX = cam.rotation.x;
-            const startNeckZ = neck.rotation.z;
-
-            // Cek Target LookAt
-            let targetObj = null;
-            if (waypoint.userData.lookAtTargetName) {
-                targetObj = this.scene.getObjectByName(waypoint.userData.lookAtTargetName);
-            }
-
-            // =========================================================
-            // 🔴 DEBUG HELPER: VISUALISASI TARGET 🔴
-            // =========================================================
-            if (targetObj) {
-                // Hapus marker lama biar gak numpuk
-                const oldMarker = this.scene.getObjectByName("DEBUG_TARGET_MARKER");
-                if (oldMarker) this.scene.remove(oldMarker);
-
-                // Buat Bola Merah Kecil
-                const debugGeom = new THREE.SphereGeometry(0.5, 16, 16); 
-                const debugMat = new THREE.MeshBasicMaterial({ 
-                    color: 0xff0000,  // MERAH MENYALA
-                    depthTest: false, // Selalu terlihat (tembus tembok)
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const debugSphere = new THREE.Mesh(debugGeom, debugMat);
-                
-                // Tempel di posisi target
-                debugSphere.position.copy(targetObj.position);
-                debugSphere.name = "DEBUG_TARGET_MARKER";
-                debugSphere.renderOrder = 999; // Render paling depan
-                
-                this.scene.add(debugSphere);
-                
-                console.log(`📍 [DEBUG] Target '${targetObj.name}' ada di:`, targetObj.position);
-                console.log("👉 Perhatikan BOLA MERAH di layar. Ke situlah kamera akan menoleh.");
-            }
-
-            // Variabel bantu untuk perhitungan frame-by-frame
-            const dummyRig = new THREE.Object3D(); 
-            const qTarget = new THREE.Quaternion();
-
-            const proxy = { t: 0 }; // Progress animasi 0 -> 1
-
-            gsap.to(proxy, {
-                t: 1,
-                duration: duration,
-                ease: easeType,
-                onUpdate: () => {
-                    // --- A. POSISI (Selalu Lerp Linear/Tween) ---
-                    // Kita pakai lerpVectors manual biar sinkron dengan rotasi
-                    rig.position.lerpVectors(rig.position, waypoint.position, 0.1); 
-                    // (Note: Posisi sebaiknya di-tween terpisah di bawah agar easingnya presisi,
-                    // tapi lerp di sini menjaga sinkronisasi kasar).
-
-                    // --- B. HITUNG ROTASI TARGET (REAL-TIME) ---
-                    
-                    if (targetObj) {
-                        // KASUS 1: LOOK AT BENDA (Benda D)
-                        // Hitung rotasi ideal seandainya kita melihat benda D sekarang
-                        
-                        // 1. Badan (Y-Only): LookAt sejajar lantai
-                        dummyRig.position.copy(rig.position);
-                        dummyRig.lookAt(targetObj.position.x, rig.position.y, targetObj.position.z);
-                        qTarget.copy(dummyRig.quaternion);
-
-                        // 2. Kepala (X-Only): Hitung Pitch
-                        // (Logic FPS: Minus Atan2)
-                        let targetPitch = 0;
-                        if (this.currentViewMode === 'FPS') {
-                            const dx = targetObj.position.x - rig.position.x;
-                            const dz = targetObj.position.z - rig.position.z;
-                            const dy = targetObj.position.y - rig.position.y;
-                            const dist = Math.sqrt(dx*dx + dz*dz);
-                            targetPitch = -Math.atan2(dy, dist);
-                        }
-                        
-                        // EKSEKUSI BLENDING (Slerp dari Awal ke Target LookAt)
-                        // proxy.t berjalan dari 0 ke 1. 
-                        // Saat t=0, dia pakai startRigQuat (Rotasi y=90 kamu).
-                        // Saat t=1, dia pakai qTarget (Rotasi LookAt).
-                        rig.quaternion.slerpQuaternions(startRigQuat, qTarget, proxy.t);
-
-                        // Blending Kepala
-                        if (this.currentViewMode === 'FPS') {
-                            cam.rotation.x = THREE.MathUtils.lerp(startHeadX, targetPitch, proxy.t);
-                            neck.rotation.z = THREE.MathUtils.lerp(startNeckZ, 0, proxy.t);
-                        }
-
-                    } else {
-                        // KASUS 2: NORMAL WAYPOINT (Benda C tanpa LookAt)
-                        // Targetnya adalah rotasi waypoint itu sendiri
-                        qTarget.copy(waypoint.quaternion);
-                        
-                        // Fix Ajaib: Shortest Path Check (Biar gak muter 360)
-                        if (startRigQuat.dot(qTarget) < 0) {
-                            qTarget.x = -qTarget.x;
-                            qTarget.y = -qTarget.y;
-                            qTarget.z = -qTarget.z;
-                            qTarget.w = -qTarget.w;
-                        }
-
-                        // Slerp
-                        rig.quaternion.slerpQuaternions(startRigQuat, qTarget, proxy.t);
-
-                        // Lerp Kepala
-                        if (this.currentViewMode === 'FPS') {
-                            cam.rotation.x = THREE.MathUtils.lerp(startHeadX, waypoint.rotation.x, proxy.t);
-                            neck.rotation.z = THREE.MathUtils.lerp(startNeckZ, waypoint.rotation.z, proxy.t);
-                        }
-                    }
-                },
-                onComplete: resolve
-            });
-
-            // Tween Posisi Utama (Agar Posisi Akurat Sesuai Ease)
-            gsap.to(rig.position, {
-                x: waypoint.position.x,
-                y: waypoint.position.y,
-                z: waypoint.position.z,
-                duration: duration,
-                ease: easeType
-            });
-        });
-    }
 
 
     _tweenCameraRotation(x, y, z, duration) {
