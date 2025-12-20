@@ -5,8 +5,33 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 export function loadInitialScene(world, state) {
     _createGround(world);
 
-    _loadModels(world, state);
+    // --- OPTIMIZED CUBES ---
+    // Gunakan 1 Geometri untuk kedua kubus (Hemat Memori)
+    const boxGeo = new THREE.BoxGeometry(10, 10, 10);
+    
+    // Gunakan BackSide untuk shadow agar tidak ada 'Shadow Acne' (Garis-garis aneh)
+    // FrontSide untuk visual agar solid.
+    const boxMat = new THREE.MeshPhongMaterial({ 
+        color: 0xff0000, 
+        side: THREE.FrontSide, 
+        shadowSide: THREE.BackSide // <--- OPTIMASI: Shadow dari belakang tidak menutupi wajah depan
+    });
 
+    const cubeMesh = new THREE.Mesh(boxGeo, boxMat);
+    cubeMesh.position.set(1, 10, 0);
+    cubeMesh.castShadow = true; 
+    cubeMesh.receiveShadow = true; 
+    world.add(cubeMesh);
+    state.addObject(cubeMesh, { isSelectable: true, isDraggable: true });
+
+    const cubeMesh2 = new THREE.Mesh(boxGeo, boxMat);
+    cubeMesh2.position.set(2.00, 5.83, 10.88);
+    cubeMesh2.castShadow = true; 
+    cubeMesh2.receiveShadow = true; 
+    world.add(cubeMesh2);
+    state.addObject(cubeMesh2, { isSelectable: true, isDraggable: true });
+
+    _loadModels(world, state);
 }
 
 

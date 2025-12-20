@@ -100,6 +100,11 @@ export class CameraManager {
         // Kita set 'far' sedikit lebih jauh dari padding agar deteksi akurat
         this.raycaster.far = this.collisionPadding * 1.5;
 
+        // --- FOOTSTEP VARS ---
+        this.stepTimer = 0;
+        this.stepInterval = 0.5; // Detik per langkah (Jalan)
+        this.runStepInterval = 0.3; // Detik per langkah (Lari)
+
         this._setupInputs();
     }
     _createDebugBody() {
@@ -432,6 +437,26 @@ export class CameraManager {
 
             groundY = hit.point.y;
             foundGround = true;
+
+            // --- DETEKSI JENIS LANTAI ---
+            const objName = (hit.object.name || "").toLowerCase();
+            const matName = (hit.object.material && hit.object.material.name || "").toLowerCase();
+            
+            // Debug Info
+            this.debugHitObjectName = hit.object.name; // Simpan nama asli (case sensitive)
+            this.debugHitMatName = hit.object.material ? hit.object.material.name : "No Material";
+
+            // Keyword untuk lantai keras/keramik
+            if (objName.includes('tile') || objName.includes('ceramic') || objName.includes('kitchen') || 
+                matName.includes('tile') || matName.includes('ceramic') || matName.includes('kitchen') ||
+                objName.includes('stone') || objName.includes('concentre') || objName.includes('floor') ||
+                objName.includes('frontside_45') || objName.includes('env565')) { // [UPDATED] Specific user objects
+                
+                this.currentSurface = 'ceramic';
+            } else {
+                // Default ke kayu (karena rumah kayu)
+                this.currentSurface = 'wood';
+            }
             break;
         }
 
@@ -554,15 +579,67 @@ export class CameraManager {
             const frameMove = this.currentMoveVelocity.clone().multiplyScalar(delta);
 
             // Cek Collision hanya jika ada pergerakan signifikan
+            // Cek Collision hanya jika ada pergerakan signifikan
             if (frameMove.lengthSq() > 0.000001) {
                 const moveDir = frameMove.clone().normalize();
 
                 // Gunakan fungsi collision yang sudah dioptimasi
                 if (!this._checkWallCollision(moveDir)) {
                     this.cameraRig.position.add(frameMove);
+
+                    // --- FOOTSTEP LOGIC (DYNAMIC SURFACE) ---
+                    if (this.canJump) {
+                        if (window.soundManager) {
+                            
+                            // 1. Tentukan Sound Asset berdasarkan Lantai (this.currentSurface)
+                            // Default: Wood
+                            let targetSoundName = 'walking_wood'; 
+                            
+                            if (this.currentSurface === 'ceramic' || this.currentSurface === 'concrete' || this.currentSurface === 'stone') {
+                                targetSoundName = 'soldier_steps'; // Hard floor sound
+                            }
+
+                            // 2. Cek apakah harus ganti track? (Misal dari Kayu -> Keramik)
+                            if (this.currentPlayingSoundName && this.currentPlayingSoundName !== targetSoundName) {
+                                // Stop sound lama
+                                if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
+                                    this.walkSoundLoop.stop();
+                                }
+                                this.walkSoundLoop = null; // Reset
+                            }
+
+                            // 3. Start Loop jika belum main
+                            if (!this.walkSoundLoop || !this.walkSoundLoop.isPlaying) {
+                                this.walkSoundLoop = window.soundManager.playSound(targetSoundName, { 
+                                    volume: 0.6, 
+                                    loop: true 
+                                });
+                                this.currentPlayingSoundName = targetSoundName;
+                            }
+
+                            // 4. Update Rate & Volume
+                            if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
+                                const targetRate = this.isRunning ? 1.5 : 1.0;
+                                this.walkSoundLoop.setPlaybackRate(targetRate);
+                                this.walkSoundLoop.setVolume(this.isRunning ? 0.8 : 0.6);
+                            }
+                        }
+                    } else {
+                        // Melayang -> Matikan
+                        if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
+                            this.walkSoundLoop.stop();
+                        }
+                    }
+
                 } else {
-                    // Jika nabrak, hentikan momentum agar tidak 'tembus' atau 'lengket'
                     this.currentMoveVelocity.set(0, 0, 0);
+                }
+            } else {
+                // Diam (Idle) -> Matikan Sound
+                this.stepTimer = 0;
+                
+                if (window.soundManager && this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
+                    this.walkSoundLoop.stop();
                 }
             }
 

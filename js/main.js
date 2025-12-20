@@ -8,6 +8,7 @@ import { SaveManager } from './SaveManager.js';
 import { CameraManager } from './CameraManager.js'; // <--- IMPORT PENTING
 import { LightingManager } from './LightingManager.js'; // <--- 1. IMPORT BARU
 import { StoryManager } from './StoryManager.js'; // Import
+import { SoundManager } from './SoundManager.js'; // [NEW] Import
 import * as THREE from 'three'; // Pastikan import THREE ada
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 
@@ -24,6 +25,7 @@ const saveManager = new SaveManager(state, history);
 const cameraManager = new CameraManager(world, state);
 // Setup Lighting SETELAH Camera (karena senter butuh kamera)
 const lightingManager = new LightingManager(world, cameraManager, state);
+const soundManager = new SoundManager(world.camera); // [NEW] Init (Butuh Kamera)
 const storyManager = new StoryManager(world, cameraManager, lightingManager, state);
 const ui = new UIManager(world, state, history, saveManager, cameraManager, storyManager);
 
@@ -31,6 +33,7 @@ const ui = new UIManager(world, state, history, saveManager, cameraManager, stor
 state.setUIManager(ui);
 world.setStateManager(state);
 ui.setStateManager(state);
+ui.setSoundManager(soundManager); // [NEW] Inject SoundManager ke UI
 
 // --- SAMBUNGKAN CAMERA MANAGER KE WORLD ---
 // Ini penting agar fungsi update() di CameraManager dipanggil setiap frame
@@ -39,6 +42,10 @@ world.setCameraManager(cameraManager);
 world.setLightingManager(lightingManager);
 
 world.setStoryManager(storyManager);
+
+world.setStoryManager(storyManager);
+soundManager.init(); // [NEW] Start loading sounds
+window.soundManager = soundManager; // [NEW] Expose to Console
 
 // 4. Muat objek-objek awal ke dalam scene
 loadInitialScene(world, state);

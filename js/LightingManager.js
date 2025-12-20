@@ -66,11 +66,11 @@ export class LightingManager {
         flashLight.distance = 100;
         flashLight.castShadow = true;
 
-        flashLight.shadow.mapSize.width = 512;
-        flashLight.shadow.mapSize.height = 512;
+        flashLight.shadow.mapSize.width = 1024; // [UPDATED] Tingkatkan Resolusi Shadow Senter
+        flashLight.shadow.mapSize.height = 1024;
 
         flashLight.shadow.bias = -0.0001;
-        flashLight.shadow.normalBias = 0.1;
+        flashLight.shadow.normalBias = 0.05; // [UPDATED] Kurangi sedikit agar tidak terlalu melayang bayangannya
 
         flashLight.shadow.camera.near = 0.001;
         flashLight.shadow.camera.far = 100;
@@ -95,6 +95,11 @@ export class LightingManager {
     toggleFlashlight() {
         const flashlight = this.lights['player_flashlight'];
         if (flashlight) {
+            // Play Sound Effect
+            if (window.soundManager) {
+                window.soundManager.playSound('flashlight');
+            }
+
             if (flashlight.intensity > 0) {
                 flashlight.intensity = 0; // OFF
             } else {

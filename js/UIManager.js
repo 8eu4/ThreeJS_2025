@@ -13,6 +13,7 @@ export class UIManager {
         this.saveManager = saveManager;
         this.cameraManager = cameraManager;
         this.storyManager = storyManager;
+        this.soundManager = null; // [NEW] Placeholder for SoundManager
 
         this.fileInput = document.createElement('input');
         this.fileInput.type = 'file';
@@ -31,6 +32,7 @@ export class UIManager {
         this.saveLoadFolder = this.gui.addFolder('Save/Load');
 
         this.debugFolder = this.gui.addFolder('DEBUG');
+        this.soundFolder = this.gui.addFolder('Sound System'); // [NEW] Folder Sound
         this.colliderHelpers = [];
 
         this.lightGuiCache = new Map();
@@ -56,6 +58,20 @@ export class UIManager {
         this._buildGizmoGUI();
         this._buildSaveLoadGUI();
         this._buildDebugGUI();
+        this._buildSoundGUI(); // [NEW] Sound GUI
+        
+        // Hook update loop
+        const originalUpdate = this.update; 
+        // Note: UIManager doesn't have a standard update loop called from main usually? 
+        // Let's check main.js. It doesn't seem UI.update is called.
+        // We can use a dirty interval for debug text update
+        setInterval(() => {
+            if (this.cameraManager && this.surfaceDebugParams) {
+                this.surfaceDebugParams.hitObject = this.cameraManager.debugHitObjectName || "None";
+                this.surfaceDebugParams.surface = this.cameraManager.currentSurface || "None";
+            }
+        }, 100);
+
         this.createCinematicButton();
 
         this._initResizer();
@@ -301,6 +317,63 @@ export class UIManager {
         };
 
         this.debugFolder.add(leakDetector, 'findLeakers').name('🚨 FIND LIGHT LEAKERS');
+        this.debugFolder.add(leakDetector, 'findLeakers').name('🚨 FIND LIGHT LEAKERS');
+        
+        // --- SURFACE DEBUG ---
+        const surfaceDebug = {
+            hitObject: 'None',
+            surface: 'None'
+        };
+        
+        this.debugFolder.add(surfaceDebug, 'hitObject').name('🦶 Floor Object').listen();
+        this.debugFolder.add(surfaceDebug, 'surface').name('🔊 Surface Type').listen();
+
+        // Update loop untuk UI Debug
+        // Kita monkey-patch atau hook ke update loop, tapi karena ini UI, kita bisa pakai setInterval atau cara lain.
+        // Atau lebih bersih: check di update() UI jika ada referensi cameraManager
+        this.surfaceDebugParams = surfaceDebug;
+    }
+
+    // [NEW] Method Build Sound GUI
+    _buildSoundGUI() {
+        const params = {
+            masterVolume: 1.0,
+            selectedSound: 'monster_scream', // Default selection
+            playSound: () => {
+                if (this.soundManager) {
+                    this.soundManager.playSound(params.selectedSound, { volume: 1.0 });
+                }
+            },
+            stopAll: () => {
+                if (this.soundManager) {
+                    this.soundManager.stopAll();
+                }
+            }
+        };
+
+        this.soundFolder.add(params, 'masterVolume', 0.0, 1.0).name('Master Volume').onChange((vol) => {
+            if (this.soundManager) this.soundManager.setMasterVolume(vol);
+        });
+
+        // List of available sounds matching SoundManager.js
+        const soundOptions = [
+            'wood_creak', 
+            'monster_scream', 
+            'flashlight', 
+            'footsteps_wood_1', 
+            'footsteps_wood_2', 
+            'monster_breath', 
+            'running', 
+            'soldier_steps', 
+            'walking_wood'
+        ];
+
+        this.soundFolder.add(params, 'selectedSound', soundOptions).name('Select Sound');
+        
+        this.soundFolder.add(params, 'playSound').name('▶ Play Sound');
+        this.soundFolder.add(params, 'stopAll').name('⏹ Stop All');
+        
+        this.soundFolder.close(); // Default closed to save space
     }
 
     // Panggil ini di _init() atau constructor
@@ -458,6 +531,7 @@ export class UIManager {
     }
 
     setStateManager(manager) { this.stateManager = manager; }
+    setSoundManager(manager) { this.soundManager = manager; } // [NEW] Setter
 
     _buildSaveLoadGUI() {
         const saveLoadSettings = {
