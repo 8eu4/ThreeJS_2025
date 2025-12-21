@@ -60,8 +60,8 @@ export class LightingManager {
     _setupFlashlight() {
         const flashLight = new THREE.SpotLight(0xfffdd0);
         flashLight.name = "Player Flashlight";
-        flashLight.angle = Math.PI / 6;
-        flashLight.penumbra = 0.6;
+        flashLight.angle = Math.PI / 5;
+        flashLight.penumbra = 0.99;
         flashLight.decay = 2;
         flashLight.distance = 100;
         flashLight.castShadow = true;
@@ -75,30 +75,35 @@ export class LightingManager {
         flashLight.shadow.camera.near = 0.001;
         flashLight.shadow.camera.far = 100;
 
-        flashLight.position.set(0, -1, 0);
+        flashLight.position.set(0, 0, 0);
+        flashLight.target.position.set(0, 0, -15);
 
-        // 2. POSISI TARGET (Di Tengah Depan Kamera)
-        // Sesuai requestmu: "ngambil posisi kamera ... ditambah vektor (0, -2, -15)"
-        flashLight.target.position.set(0, -1, -15);
+        const bounceLight = new THREE.PointLight(0xfffdd0, 0, 15);
+        bounceLight.name = "Flashlight_Bounce";
 
         this.camera.add(flashLight);
         this.camera.add(flashLight.target);
+        this.camera.add(bounceLight);
 
         // this.lights['player_flashlight'] = flashLight;
         // flashLight.visible = false;
 
         this.lights['player_flashlight'] = flashLight;
+        this.lights['flashlight_bounce'] = bounceLight;
         flashLight.visible = true;
         flashLight.intensity = 0; // Mati (Gelap)
     }
 
     toggleFlashlight() {
         const flashlight = this.lights['player_flashlight'];
+        const bounce = this.lights['flashlight_bounce'];
         if (flashlight) {
             if (flashlight.intensity > 0) {
                 flashlight.intensity = 0; // OFF
+                bounce.intensity = 0;
             } else {
-                flashlight.intensity = 500; // ON
+                flashlight.intensity = 100; // ON
+                bounce.intensity = 5;
             }
         }
     }
@@ -109,9 +114,9 @@ export class LightingManager {
             new THREE.Vector3(0, 20, -20),   // start
             new THREE.Vector3(0, 20, 15), // end
             "#FFFFFF",          // Warna
-            2200,              // Intensitas
+            2000,              // Intensitas
             50,               // Distance
-            Math.PI / 2,       // Angle 
+            Math.PI / 4,       // Angle 
             0.5,                // Penumbra 
             true
         );
@@ -247,15 +252,19 @@ export class LightingManager {
         light.distance = distance;
         light.angle = angle;
         light.penumbra = penumbra;
+        light.decay = 2;
         light.castShadow = castShadow || false;
 
         if (light.castShadow) {
             light.shadow.mapSize.width = 512;
             light.shadow.mapSize.height = 512;
-            light.shadow.bias = 0;
-            light.shadow.normalBias = 0.05;
 
-            light.shadow.camera.near = 0.001;
+            light.shadow.bias = -0.0001;
+            light.shadow.normalBias = 0.02;
+
+            light.shadow.camera.near = 0.5;
+            light.shadow.camera.far = distance;
+            light.shadow.camera.fov = THREE.MathUtils.radToDeg(angle) * 2;
         }
 
         // Setup Source (Posisi Lampu)
@@ -342,7 +351,7 @@ export class LightingManager {
 
     _setupCommonLightProperties(light, id, intensity) {
         light.name = id;
-        light.castShadow = false;
+        // light.castShadow = true;
         light.userData.baseIntensity = intensity;
         light.userData.isFlickering = false;
         light.userData.flickerTimer = 0;

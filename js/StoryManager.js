@@ -22,6 +22,7 @@ export class StoryManager {
         // untuk debug
         this.currentViewMode = 'ORBIT';
 
+        this.allLights = this.lightingManager.lights;
 
         // Set kondisi awal Buka (Tanpa animasi)
         this._preloadAllScenes().then(() => {
@@ -131,7 +132,26 @@ export class StoryManager {
     //               SCENE 03
     // ==========================================
     async scene03_Kitchen() {
-        if (!this.isSetupMode) console.log("--- Scene 3 ---");
+        if (!this.isSetupMode) {
+            console.log("--- Scene 3 ---");
+            const lightIds = [
+                'light_Bedroom_1', 'light_Bedroom_2', 'light_Bedroom_3', 
+                'light_Bedroom_4', 'light_Bedroom_5', 'light_Bedroom_6', 'light_Bedroom_7'
+            ];
+
+            const objectsToAnimate = [];
+            lightIds.forEach(id => {
+                const lightObj = this.allLights[id]; // Ambil dari daftar lampu
+                if (lightObj) {
+                    lightObj.castShadow = false; 
+                    objectsToAnimate.push(lightObj);
+                }
+            });
+
+            if (objectsToAnimate.length > 0) {
+                gsap.set(objectsToAnimate, { intensity: 0 });
+            }
+        }
         if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
 
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_enterkitchen", { x:-37.11, y:10.91, z:-53.99 }, { y: -90 }), 4, "none");
@@ -226,8 +246,8 @@ export class StoryManager {
         this._setCinematicMode(true, this.currentViewMode);
 
         // --- MULAI SEQUENCE ---
-        // await this.scene01_WakeUp();
-        // await this.scene02_BedroomCorridor();
+        await this.scene01_WakeUp();
+        await this.scene02_BedroomCorridor();
         await this.scene03_Kitchen();
         // --- SELESAI ---
 

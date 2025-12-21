@@ -5,8 +5,31 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 export function loadInitialScene(world, state) {
     _createGround(world);
 
-    _loadModels(world, state);
+    const geometry = new THREE.BoxGeometry(10, 10, 10);
+    const material = new THREE.MeshPhongMaterial({ color: 0xff0000, side: THREE.FrontSide, shadowSide: THREE.BackSide, depthWrite: true});
+    const cubeMesh = new THREE.Mesh(geometry, material);
+    cubeMesh.position.set(1, 10, 0);
 
+    cubeMesh.castShadow = true; 
+    cubeMesh.receiveShadow = true; 
+
+    world.add(cubeMesh);
+
+    state.addObject(cubeMesh, { isSelectable: true, isDraggable: true });
+
+    const geometry2 = new THREE.BoxGeometry(10, 10, 10);
+    const material2 = new THREE.MeshPhongMaterial({ color: 0xff0000, side: THREE.FrontSide, shadowSide: THREE.BackSide, depthWrite: true});
+    const cubeMesh2 = new THREE.Mesh(geometry2, material2);
+    cubeMesh2.position.set(7.90, 5.83, 10.88);
+
+    cubeMesh2.castShadow = true; 
+    cubeMesh2.receiveShadow = true; 
+
+    world.add(cubeMesh2);
+
+    state.addObject(cubeMesh2, { isSelectable: true, isDraggable: true });
+
+    _loadModels(world, state);
 }
 
 
