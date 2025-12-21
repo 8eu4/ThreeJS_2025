@@ -105,8 +105,173 @@ export class CameraManager {
         this.stepInterval = 0.5; // Detik per langkah (Jalan)
         this.runStepInterval = 0.3; // Detik per langkah (Lari)
 
+        this.highlightedDoor = null;
+        this.isDoorAnimating = false;
+        this.lastInteractObject = null;
+
         this._setupInputs();
     }
+    checkDoorInteraction() {
+        // [FIX 1] GUNAKAN POSISI KAMERA (MATA), BUKAN RIG (KAKI)
+        // Raycaster dari tengah layar (0,0) menggunakan kamera aktif
+        this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+        this.raycaster.far = 12.0; // Jarak sedikit diperjauh biar nyaman
+
+        const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+
+        // Cari kandidat pintu baru
+        let newDoorCandidate = null;
+
+        for (let i = 0; i < intersects.length; i++) {
+            const hit = intersects[i];
+
+            // Validasi: Abaikan benda invisible / debug / garis
+            if (!hit.object.visible) continue;
+            if (hit.object.type === 'Line' || hit.object.type === 'LineSegments') continue;
+            if (hit.object.name.includes("Debug")) continue;
+
+            // Cek apakah benda ini bagian dari pintu?
+            const root = this._findDoorRoot(hit.object);
+            if (root) {
+                newDoorCandidate = root;
+                break; // Ketemu pintu terdekat, stop loop
+            }
+        }
+
+        // [FIX 2] LOGIKA STATE CHANGE (Hanya ubah warna kalau target BERUBAH)
+        // Ini mencegah flicker dan warna nyangkut
+        if (newDoorCandidate !== this.lastInteractObject) {
+
+            // 1. Matikan lampu pintu LAMA (jika ada)
+            if (this.lastInteractObject) {
+                this._setHighlight(this.lastInteractObject, 0x000000); // Hitam (Normal)
+            }
+
+            // 2. Nyalakan lampu pintu BARU (jika ada)
+            if (newDoorCandidate) {
+                this._setHighlight(newDoorCandidate, 0x004400); // Hijau
+            }
+
+            // 3. Simpan state
+            this.lastInteractObject = newDoorCandidate;
+            this.interactObject = newDoorCandidate;
+        }
+    }
+
+    // [FUNGSI BARU] Mencari Bapak/Leluhur Tertinggi yang bernama "Door"
+    _findDoorRoot(obj) {
+        let curr = obj;
+        let doorRoot = null;
+
+        // Naik terus sampai Scene
+        while (curr && curr.type !== 'Scene') {
+            const name = (curr.name || "").toLowerCase();
+
+            // Jika ketemu kata door, simpan ini sebagai kandidat "Root"
+            // Tapi jangan berhenti, siapa tau bapaknya dia adalah Group Door yang lebih besar
+            if (name.includes("door")) {
+                doorRoot = curr;
+            }
+            curr = curr.parent;
+        }
+
+        return doorRoot; // Akan mengembalikan null jika tidak ada silsilah door
+    }
+
+    // [FUNGSI BARU] Helper untuk mewarnai satu keluarga
+    _setHighlight(object, colorHex) {
+        if (!object) return;
+
+        object.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // Clone material agar tidak merusak objek lain yang pakai material sama
+                // (Opsional, tapi disarankan kalau asetnya sharing material)
+                if (!child.userData.originalMaterial) {
+                    child.userData.originalMaterial = child.material.clone();
+                    child.material = child.userData.originalMaterial;
+                }
+
+                if (child.material.emissive) {
+                    child.material.emissive.setHex(colorHex);
+
+                    // Pastikan emissive intensity-nya cukup
+                    if (child.material.emissiveIntensity !== undefined) {
+                        child.material.emissiveIntensity = (colorHex === 0x000000) ? 0 : 0.5;
+                    }
+                }
+            }
+        });
+    }
+
+    // Fungsi bantu untuk menyalakan/mematikan visual emissive pada seluruh anak mesh
+    _toggleDoorHighlight(object, colorHex) {
+        object.traverse(node => {
+            if (node.isMesh && node.material && node.material.emissive) {
+                node.material.emissive.setHex(colorHex);
+            }
+        });
+    }
+
+    _isValidInteractionTarget(obj) {
+        if (!obj.visible) return false;
+
+        let curr = obj;
+        while (curr && curr.type !== 'Scene') {
+            const name = (curr.name || "").toLowerCase();
+            if (name.includes("door")) {
+                return true;
+            }
+            curr = curr.parent;
+        }
+
+        return false;
+    }
+
+    _handleDoorLogic(door) {
+        // 1. Guard Clause: Jika sedang animasi, abaikan input (mencegah glitch/spam)
+        if (this.isDoorAnimating) return;
+
+        const name = door.name.toLowerCase();
+
+        // 2. Tentukan Sudut Target Berdasarkan Nama
+        // Kita tentukan "Sudut Terbuka" nya dulu
+        let openAngle = THREE.MathUtils.degToRad(90); // Default 90
+        if (name.includes('bedroom')) {
+            openAngle = THREE.MathUtils.degToRad(90);
+        } else if (name.includes('corridor')) {
+            openAngle = THREE.MathUtils.degToRad(90);
+        } else if (name.includes('kitchen')) {
+            openAngle = THREE.MathUtils.degToRad(90);
+        }
+
+        // 3. Logika Toggle (Buka/Tutup)
+        // Jika rotasi sekarang mendekati 0, maka targetnya adalah 'openAngle'
+        // Jika rotasi sekarang TIDAK 0 (sudah terbuka), maka targetnya adalah 0 (tutup)
+        const isClosed = Math.abs(door.rotation.y) < 0.01;
+        const targetY = isClosed ? openAngle : 0;
+
+        this.isDoorAnimating = true;
+
+        // 4. Eksekusi Animasi dengan GSAP
+        if (window.gsap) {
+            gsap.to(door.rotation, {
+                y: targetY,
+                duration: 1.0, // Sedikit lebih cepat agar terasa responsif
+                ease: "power2.inOut",
+                onComplete: () => {
+                    this.isDoorAnimating = false;
+
+                    // Safety Clamp: Pastikan angkanya presisi di akhir animasi
+                    door.rotation.y = targetY;
+                    console.log(`Pintu ${isClosed ? 'Dibuka' : 'Ditutup'} ke: ${targetY}`);
+                }
+            });
+        } else {
+             door.rotation.y = targetY;
+             this.isDoorAnimating = false;
+        }
+    }
+
     _createDebugBody() {
         const old = this.cameraRig.getObjectByName("Debug_Player_Cylinder");
         if (old) this.cameraRig.remove(old);
@@ -140,6 +305,7 @@ export class CameraManager {
     }
 
 
+
     _setupInputs() {
         const onKeyDown = (event) => {
             if (event.key === 'Shift') this.isRunning = true;
@@ -153,6 +319,12 @@ export class CameraManager {
                 case 'KeyS': this.moveBackward = true; break;
                 case 'ArrowRight':
                 case 'KeyD': this.moveRight = true; break;
+
+                case 'KeyG':
+                    if (this.interactObject) {
+                        this._handleDoorLogic(this.interactObject);
+                    }
+                    break;
 
                 case 'KeyQ':
                     this.moveDown = true;
@@ -327,6 +499,7 @@ export class CameraManager {
             if (name.includes("transformcontrols")) return false;
             if (type.includes("Controls")) return false;
             if (type.includes("Helper")) return false;
+            if (name.includes("backside_2")) return false;
             if (curr.userData && curr.userData.isWaypoint) return false;
 
             curr = curr.parent;
@@ -532,6 +705,8 @@ export class CameraManager {
             }
 
         } else if (this.activeMode === 'FPS') {
+            this.checkDoorInteraction();
+
 
             // --- ROLL / MIRING CONTINUOUS (TETAP SAMA) ---
             const spinSpeed = 2.0;

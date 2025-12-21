@@ -99,6 +99,11 @@ window.addEventListener('keydown', (event) => {
             // if (sm) sm.stopScene(); 
         }
     }
+    
+    // HIDE UI (H)
+    else if (event.key.toLowerCase() === 'h') {
+        ui.toggleUI();
+    }
 });
 
 // Listener Deseleksi Global

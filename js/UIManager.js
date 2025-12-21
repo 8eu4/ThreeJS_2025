@@ -14,6 +14,7 @@ export class UIManager {
         this.cameraManager = cameraManager;
         this.storyManager = storyManager;
         this.soundManager = null; // [NEW] Placeholder for SoundManager
+        this.uiVisible = true; // [NEW] State visibility UI
 
         this.fileInput = document.createElement('input');
         this.fileInput.type = 'file';
@@ -1011,4 +1012,30 @@ export class UIManager {
     }
 
 
+    toggleUI() {
+        this.uiVisible = !this.uiVisible;
+        
+        // 1. Hierarchy Panel
+        if (this.hierarchyPanelEl) {
+            this.hierarchyPanelEl.style.display = this.uiVisible ? '' : 'none';
+        }
+
+        // 2. lil-gui
+        if (this.gui) {
+            this.uiVisible ? this.gui.show() : this.gui.hide();
+        }
+
+        // 3. Cinematic Button
+        if (this.cinematicBtn) {
+            this.cinematicBtn.style.display = this.uiVisible ? 'block' : 'none';
+        }
+
+        // 4. Transform Controls (Gizmo) - Hide if UI is hidden
+        if (this.world.transformControls) {
+             this.world.transformControls.visible = this.uiVisible;
+             this.world.transformControls.enabled = this.uiVisible;
+        }
+
+        console.log(`UI Visibility: ${this.uiVisible ? "ON" : "OFF"}`);
+    }
 }
