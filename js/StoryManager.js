@@ -242,9 +242,19 @@ export class StoryManager {
 
         await this._wait(2);
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_1", { x: -29.5, y: 10.91, z: -48.6 }, { x: 0, y: -47.77 }), 2, "none");
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_2", { x: -27, y: 10.91, z: -53 }, { x: -23.7, y: -47.77 }), 1.5, "power2.out");
 
-        await this.hideFlashlight();
+        // Pastikan Flashlight MUNCUL dulu di awal sequence ini
+        // (Jaga-jaga kalau dia ter-hide dari run sebelumnya)
+        const propFlash = this.scene.getObjectByName('Prop_Flashlight');
+        if(propFlash) propFlash.visible = true; 
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_2", { x: -27, y: 10.91, z: -53 }, { x: -23.7, y: -47.77 }), 1.5, "power2.out"),
+            // Di sini dia akan menunggu 1.7 detik baru menjalankan hideFlashlight
+            this._waitAndRun(1.7, () => this.hideFlashlight()),
+        ]);
+        
+
     
         await this._wait(0.5);
 
@@ -256,7 +266,11 @@ export class StoryManager {
     }
 
     async hideFlashlight() {
-        if (!this.isSetupMode) console.log("🔦 Menjalankan hideFlashlight...");
+        // [FIX UTAMA] Jangan jalankan logic ini saat Pre-loading/Setup
+        // Agar flashlight tidak hilang duluan sebelum scene dimainkan
+        if (this.isSetupMode) return; 
+
+        console.log("🔦 Menjalankan hideFlashlight...");
         
         // Cari Prop di Scene
         const prop = this.scene.getObjectByName('Prop_Flashlight');
@@ -442,8 +456,8 @@ export class StoryManager {
 
         try {
             // --- MULAI SEQUENCE ---
-            // await this.scene01_WakeUp();
-            // await this.scene02_BedroomCorridor();
+            await this.scene01_WakeUp();
+            await this.scene02_BedroomCorridor();
             await this.scene03_Kitchen();
             await this.scene04_LongCorridor();
             // --- SELESAI ---
