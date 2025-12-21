@@ -194,6 +194,44 @@ export class StoryManager {
                 this.defineWaypoint("Scene03_scared_4", { x: -28.89, y: 5.31, z: -48.18 }, { x: -23, y: 57 }), 1.5, "power2.in"
             )),
         ]);
+        
+        // Kembalikan cahaya normal
+        this._setLightFlicker('light_kitchen_1', false);
+        this._setLightFlicker('light_kitchen_2', false);
+    }
+
+    // ==========================================
+    //               SCENE 04 (CONTOH)
+    // ==========================================
+    async scene04_Tutorial() {
+        // [TUTORIAL MEMBUAT SCENE BARU]
+        // 1. Buat method async seperti ini.
+        // 2. Tentukan titik poin kamera (Waypoint).
+
+        console.log("--- Scene 4: Tutorial ---");
+        
+        // Langkah 1: Teleport ke posisi awal
+        // (Gunakan console log untuk mendapatkan koordinat x,y,z dari Gizmo di mode Orbit)
+        this._instantSetPosition(this.defineWaypoint("Tutorial_Start", { x: -84.53, y: 10.91, z: -22.77 }, { y: 180 }));
+
+        await this._wait(1.0);
+
+        // Langkah 2: Gerakkan Player ke titik baru
+        // "Tutorial_End" belum ada koordinatnya? Tidak apa-apa!
+        // Jalankan saja scene ini, nanti akan muncul KOTAK KUNING di (0,0,0).
+        // Geser kotak itu pakai Gizmo, lalu lihat Console untuk dapat kodenya.
+        await this.playerMoveToWaypoint(
+            this.defineWaypoint("Tutorial_Move1", { x: -84.53, y: 10.91, z: -30 }, { y: 180 }), 
+            3.0 // Durasi 3 detik
+        );
+
+        // Langkah 3: Noleh Kanan
+        await this.playerMoveToWaypoint(
+            this.defineWaypoint("Tutorial_LookRight", { x: -84.53, y: 10.91, z: -30 }, { y: 90 }), 
+            1.5 
+        );
+
+        console.log("Tutorial Selesai!");
     }
 
     // ==========================================
@@ -204,40 +242,95 @@ export class StoryManager {
     async playFullMovie(startInFPS = true) {
         console.log(`🎬 FILM DIMULAI (Start Mode: ${startInFPS ? 'FPS' : 'ORBIT'})...`);
 
+        // [FIX] Reset Cancel Flag agar bisa dimainkan lagi setelah stop
+        this.isCancelled = false; 
+        
         this.currentViewMode = startInFPS ? 'FPS' : 'ORBIT';
         this.isStoryPlaying = true;
 
-        // [PERBAIKAN 1] HANYA matikan UI jika mode FPS (Cinematic Asli). 
-        // Kalau False (Debug), UI TETAP NYALA.
         if (startInFPS) {
             this._setGuiVisibility(false);
             this.world.setHelpersVisibility(false);
         } else {
-            this._setGuiVisibility(true); // Pastikan nyala
-            this.world.setHelpersVisibility(true); // Helper nyala buat debug
+            this._setGuiVisibility(true); 
+            this.world.setHelpersVisibility(true); 
         }
 
-        // Atur Tombol Switch View
         if (this.world.ui) {
             this.world.ui.setCinematicButtonVisible(!startInFPS);
         }
 
-        // Masuk Mode
         this._setCinematicMode(true, this.currentViewMode);
 
-        // --- MULAI SEQUENCE ---
-        // await this.scene01_WakeUp();
-        // await this.scene02_BedroomCorridor();
-        await this.scene03_Kitchen();
-        // --- SELESAI ---
+        try {
+            // --- MULAI SEQUENCE ---
+            // await this.scene01_WakeUp();
+            // await this.scene02_BedroomCorridor();
+            await this.scene03_Kitchen();
+            // --- SELESAI ---
+            
+            console.log("🎬 FILM SELESAI.");
+        } catch (err) {
+            if (err.message === "SCENE_CANCELLED") {
+                console.log("⚠️ Scene stopped by user.");
+            } else {
+                console.error("❌ Scene Error:", err);
+            }
+        } finally {
+            // [FIX] CLEANUP SELALU DIJALANKAN (Meskipun error/cancel)
+            if (this.isStoryPlaying) { 
+                // Jika distop paksa lewat stopScene(), isStoryPlaying sudah false duluan, jadi skip block ini.
+                // Tapi kalau finish normal atau error lain, ini jalan.
+                // Reset
+                this.world.setHelpersVisibility(true);
+                this._setCinematicMode(false);
+                this._setGuiVisibility(true);
+                if (this.world.ui) this.world.ui.setCinematicButtonVisible(false);
+            }
+            // Pastikan flag mati
+            this.isStoryPlaying = false; 
+        }
+    }
 
-        // Reset
-        this.world.setHelpersVisibility(true);
-        this._setCinematicMode(false);
-        this._setGuiVisibility(true);
+    async playSingleScene(sceneName) {
+        if (typeof this[sceneName] !== 'function') {
+            console.error(`❌ Scene '${sceneName}' not found!`);
+            return;
+        }
 
-        if (this.world.ui) this.world.ui.setCinematicButtonVisible(false);
-        console.log("🎬 FILM SELESAI.");
+        console.log(`🎬 PLAYING SINGLE SCENE: ${sceneName}...`);
+        
+        // Setup State
+        this.isCancelled = false; 
+        this.isStoryPlaying = true;
+        this.currentViewMode = 'FPS';
+
+        // Setup UI & Mode
+        this._setGuiVisibility(false);
+        this.world.setHelpersVisibility(false);
+        if (this.world.ui) this.world.ui.setCinematicButtonVisible(true);
+        this._setCinematicMode(true, 'FPS');
+
+        try {
+            // Run Scene
+            await this[sceneName]();
+            console.log("✅ Scene Finished.");
+        } catch (err) {
+            if (err.message === "SCENE_CANCELLED") {
+                console.log("⚠️ Scene stopped by user.");
+            } else {
+                console.error("❌ Scene Error:", err);
+            }
+        } finally {
+            // Cleanup
+            if (this.isStoryPlaying) {
+                this.world.setHelpersVisibility(true);
+                this._setCinematicMode(false);
+                this._setGuiVisibility(true);
+                if (this.world.ui) this.world.ui.setCinematicButtonVisible(false);
+            }
+            this.isStoryPlaying = false;
+        }
     }
 
     defineWaypoint(name, pos = {}, rot = {}) {
@@ -310,58 +403,152 @@ export class StoryManager {
         }
     }
 
+    // --- STOP / CANCEL MECHANISM ---
+    stopScene() {
+        if (!this.isStoryPlaying) return;
+
+        console.warn("🛑 FORCE STOPPING SCENE...");
+        this.isCancelled = true;
+        this.isStoryPlaying = false;
+        
+        // 1. Kill All GSAP Animations
+        if (window.gsap) {
+            gsap.globalTimeline.clear(); 
+        }
+
+        // 2. Kill Timeouts
+        if (this.activeTimeouts) {
+            this.activeTimeouts.forEach(id => clearTimeout(id));
+            this.activeTimeouts = [];
+        }
+
+        // 3. Reset UI & Mode directly here (in case the promise chain hangs)
+        this._setCinematicMode(false);
+        this._setGuiVisibility(true);
+        if (this.world.ui) this.world.ui.setCinematicButtonVisible(false);
+
+        // 4. Force Eye Open
+        this.setEyeOpenness(1.0, 0);
+    }
+
+    _checkCancellation() {
+        if (this.isCancelled) {
+            throw new Error("SCENE_CANCELLED");
+        }
+    }
+
+    // Wrapper untuk menjalankan Scene agar aman dari error Cancellation
+    async _runSceneSafe(sceneMethodName) {
+        this.isCancelled = false; 
+        this.activeTimeouts = [];
+
+        try {
+            await this[sceneMethodName]();
+        } catch (err) {
+            if (err.message === "SCENE_CANCELLED") {
+                console.log("✅ Scene successfully aborted.");
+            } else {
+                console.error("❌ Scene Error:", err);
+            }
+        }
+    }
+
+    async _wait(duration) {
+        this._checkCancellation();
+        return new Promise(resolve => {
+            const id = setTimeout(() => {
+                if (!this.isCancelled) resolve();
+            }, duration * 1000);
+            if (!this.activeTimeouts) this.activeTimeouts = [];
+            this.activeTimeouts.push(id);
+        });
+    }
+
     playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut", useLongestPath = false) {
         if (this.isSetupMode) return Promise.resolve();
+        this._checkCancellation();
 
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             const waypoint = this.scene.getObjectByName(waypointName);
             if (!waypoint) { resolve(); return; }
 
             const rig = this.cameraManager.cameraRig;
             const cam = this.cameraManager.camera;
-
-            // 1. Ambil State Awal
             const startRigY = rig.rotation.y;
             const startCamX = cam.rotation.x;
             const startPos = rig.position.clone();
-
-            // 2. Ambil Target dari Waypoint
             const targetEuler = new THREE.Euler().setFromQuaternion(waypoint.quaternion, 'YXZ');
 
-            // --- LOGIKA DINAMIS: TERDEKAT VS TERJAUH ---
             const calculateDiff = (target, start, longest) => {
                 let diff = target - start;
-                // Normalisasi ke range -PI sampai PI (Shortest Path)
                 while (diff < -Math.PI) diff += Math.PI * 2;
                 while (diff > Math.PI) diff -= Math.PI * 2;
-
-                if (longest) {
-                    // Jika ingin jalur terjauh, putar balik arah selisihnya
-                    diff = diff > 0 ? diff - Math.PI * 2 : diff + Math.PI * 2;
-                }
+                if (longest) diff = diff > 0 ? diff - Math.PI * 2 : diff + Math.PI * 2;
                 return diff;
             };
 
             const diffY = calculateDiff(targetEuler.y, startRigY, useLongestPath);
-            const diffX = calculateDiff(targetEuler.x, startCamX, false); // Biasanya X tidak perlu terjauh
+            const diffX = calculateDiff(targetEuler.x, startCamX, false);
 
-            // 3. Eksekusi Animasi
             const proxy = { t: 0 };
             gsap.to(proxy, {
                 t: 1,
                 duration: duration,
                 ease: easeType,
                 onUpdate: () => {
-                    const alpha = proxy.t;
-                    rig.position.lerpVectors(startPos, waypoint.position, alpha);
-
-                    // Terapkan rotasi berdasarkan selisih yang sudah dihitung
-                    rig.rotation.y = startRigY + diffY * alpha;
-                    cam.rotation.x = startCamX + diffX * alpha;
+                   if (this.isCancelled) {
+                       gsap.killTweensOf(proxy);
+                       // No resolve, let it die
+                       return; 
+                   }
+                   const alpha = proxy.t;
+                   rig.position.lerpVectors(startPos, waypoint.position, alpha);
+                   rig.rotation.y = startRigY + diffY * alpha;
+                   cam.rotation.x = startCamX + diffX * alpha;
                 },
-                onComplete: resolve
+                onComplete: () => {
+                    if (!this.isCancelled) resolve();
+                }
             });
         });
+    }   
+
+    animateDoor(doorName, targetAngleDeg, duration) {
+        if (this.isSetupMode) return Promise.resolve();
+        this._checkCancellation();
+
+        return new Promise(resolve => {
+            const door = this.scene.getObjectByName(doorName);
+            if (!door) { resolve(); return; }
+            if (this.isCancelled) return;
+
+            const targetRad = THREE.MathUtils.degToRad(targetAngleDeg);
+            gsap.to(door.rotation, {
+                y: targetRad,
+                duration: duration,
+                ease: "power2.inOut", 
+                onUpdate: () => { if(this.isCancelled) gsap.killTweensOf(door.rotation); },
+                onComplete: () => { if(!this.isCancelled) resolve(); }
+            });
+        });
+    }
+
+    _waitAndRun(delay, callback) {
+        this._checkCancellation();
+        return this._wait(delay).then(() => {
+            this._checkCancellation();
+            return callback();
+        });
+    }
+
+    async runParallel(promises) {
+        this._checkCancellation();
+        try {
+            await Promise.all(promises);
+        } catch (e) {
+            if (e.message === "SCENE_CANCELLED") return; 
+            throw e;
+        }
     }   
 
     switchViewMode() {

@@ -59,6 +59,7 @@ export class UIManager {
         this._buildSaveLoadGUI();
         this._buildDebugGUI();
         this._buildSoundGUI(); // [NEW] Sound GUI
+        this._buildStoryGUI(); // [NEW] Story / Cinematic GUI
         
         // Hook update loop
         const originalUpdate = this.update; 
@@ -374,6 +375,53 @@ export class UIManager {
         this.soundFolder.add(params, 'stopAll').name('⏹ Stop All');
         
         this.soundFolder.close(); // Default closed to save space
+    }
+
+    // [NEW] Story / Cinematic GUI
+    _buildStoryGUI() {
+        const storyFolder = this.gui.addFolder('Cinematic Story');
+        
+        const params = {
+            playFPS: () => {
+                if (this.storyManager) this.storyManager.playFullMovie(true);
+            },
+            playOrbit: () => {
+                if (this.storyManager) {
+                    this.storyManager._runSceneSafe('playFullMovie', false); // Use safe wrapper
+                }
+            },
+            cancel: () => {
+                if (this.storyManager) this.storyManager.stopScene();
+                // console.log("⏹ Stop Request Sent");
+            },
+            reload: () => {
+                if (confirm("Reload Page?")) {
+                    window.location.reload();
+                }
+            }
+        };
+
+        storyFolder.add(params, 'playFPS').name('🎬 Play Full Movie (FPS)');
+        storyFolder.add(params, 'playOrbit').name('🎥 Play Debug (Orbit)');
+        storyFolder.add(params, 'cancel').name('⏹ Cancel Scene (Soft)');
+        storyFolder.add(params, 'reload').name('🔄 Force Reload');
+        
+        // List scene individual
+        const sceneParams = {
+            selectedScene: 'scene01_WakeUp',
+            playScene: () => {
+                if (this.storyManager && this.storyManager[sceneParams.selectedScene]) {
+                   // Gunakan method baru yang aman (Cancelable)
+                   this.storyManager.playSingleScene(sceneParams.selectedScene);
+                }
+            }
+        };
+
+        const sceneOptions = ['scene01_WakeUp', 'scene02_BedroomCorridor', 'scene03_Kitchen', 'scene04_Tutorial'];
+        const specificFolder = storyFolder.addFolder('Select Scene');
+        specificFolder.add(sceneParams, 'selectedScene', sceneOptions).name('Scene Name');
+        specificFolder.add(sceneParams, 'playScene').name('▶ Play Selected');
+        specificFolder.open();
     }
 
     // Panggil ini di _init() atau constructor

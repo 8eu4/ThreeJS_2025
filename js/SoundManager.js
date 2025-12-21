@@ -19,7 +19,10 @@ export class SoundManager {
             { name: 'monster_breath', file: 'robot-breathing-366928.mp3' },
             { name: 'running', file: 'running-on-the-floor-359909.mp3' },
             { name: 'soldier_steps', file: 'soldier-steps-27399.mp3' },
-            { name: 'walking_wood', file: 'walking-on-wood-363349.mp3' }
+            { name: 'walking_wood', file: 'walking-on-wood-363349.mp3' },
+            { name: 'footsteps_tile_1', file: 'Footstep Ceramic.m4a' }, // [NEW] Random 1
+            { name: 'footsteps_tile_2', file: 'Footstep Ceramic copy.m4a' }, // [NEW] Random 2
+            { name: 'footsteps_carpet', file: 'audio Footstep Carpet.m4a' } // [NEW] Karpet Updated
         ];
 
         this.globalAudio = new THREE.Audio(this.listener);

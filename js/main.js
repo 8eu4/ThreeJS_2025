@@ -82,6 +82,22 @@ window.addEventListener('keydown', (event) => {
         history.undo();
         return; 
     }
+
+    // STOP SCENE (X)
+    else if (event.key.toLowerCase() === 'x') {
+        // [DEBUG] Always log X press
+        const sm = window.storyManager;
+        console.log(`🛑 Key 'X' detected. StoryManager: ${!!sm}, IsPlaying: ${sm ? sm.isStoryPlaying : 'N/A'}`);
+
+        if (sm && sm.isStoryPlaying) {
+            console.log("🛑 Triggering stopScene()...");
+            sm.stopScene();
+        } else {
+            // Force stop anyway debug
+            // console.warn("⚠️ Force Stop Attempted (Debug)");
+            // if (sm) sm.stopScene(); 
+        }
+    }
 });
 
 // Listener Deseleksi Global

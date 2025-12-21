@@ -450,9 +450,14 @@ export class CameraManager {
             if (objName.includes('tile') || objName.includes('ceramic') || objName.includes('kitchen') || 
                 matName.includes('tile') || matName.includes('ceramic') || matName.includes('kitchen') ||
                 objName.includes('stone') || objName.includes('concentre') || objName.includes('floor') ||
-                objName.includes('frontside_45') || objName.includes('env565')) { // [UPDATED] Specific user objects
+                objName.includes('frontside_45') || (objName === 'frontside_50' || objName.startsWith('frontside_50.')) || objName.includes('env565')) { // [UPDATED] Specific user objects
                 
                 this.currentSurface = 'ceramic';
+            
+            } else if (objName === 'frontside_37' || objName.startsWith('frontside_37.')) {
+                
+                this.currentSurface = 'carpet'; // [NEW] Karpet
+
             } else {
                 // Default ke kayu (karena rumah kayu)
                 this.currentSurface = 'wood';
@@ -591,37 +596,89 @@ export class CameraManager {
                     if (this.canJump) {
                         if (window.soundManager) {
                             
-                            // 1. Tentukan Sound Asset berdasarkan Lantai (this.currentSurface)
-                            // Default: Wood
-                            let targetSoundName = 'walking_wood'; 
+                            // HYBRID SYSTEM:
                             
                             if (this.currentSurface === 'ceramic' || this.currentSurface === 'concrete' || this.currentSurface === 'stone') {
-                                targetSoundName = 'soldier_steps'; // Hard floor sound
-                            }
-
-                            // 2. Cek apakah harus ganti track? (Misal dari Kayu -> Keramik)
-                            if (this.currentPlayingSoundName && this.currentPlayingSoundName !== targetSoundName) {
-                                // Stop sound lama
+                                // --- MODE DISCRETE (RANDOM & VARIED) ---
+                                
+                                // 1. Matikan Loop (Wood/Carpet) jika masih nyala
                                 if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
                                     this.walkSoundLoop.stop();
+                                    this.walkSoundLoop = null;
                                 }
-                                this.walkSoundLoop = null; // Reset
-                            }
 
-                            // 3. Start Loop jika belum main
-                            if (!this.walkSoundLoop || !this.walkSoundLoop.isPlaying) {
-                                this.walkSoundLoop = window.soundManager.playSound(targetSoundName, { 
-                                    volume: 0.6, 
-                                    loop: true 
-                                });
-                                this.currentPlayingSoundName = targetSoundName;
-                            }
+                                // 2. Hitung Timer
+                                const currentInterval = this.isRunning ? this.runStepInterval : this.stepInterval;
+                                this.stepTimer += delta;
 
-                            // 4. Update Rate & Volume
-                            if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
-                                const targetRate = this.isRunning ? 1.5 : 1.0;
-                                this.walkSoundLoop.setPlaybackRate(targetRate);
-                                this.walkSoundLoop.setVolume(this.isRunning ? 0.8 : 0.6);
+                                if (this.stepTimer > currentInterval) {
+                                    this.stepTimer = 0; // Reset
+
+                                    // 3. Matikan step sebelumnya (Anti-Bertumpuk)
+                                    // Kita stop sound discrete sebelumnya biar ga tabrakan parah
+                                    if (this.currentOneShotSound && this.currentOneShotSound.isPlaying) {
+                                        this.currentOneShotSound.stop();
+                                    }
+
+                                    // 4. Play Random File
+                                    const randIdx = Math.random() > 0.5 ? 1 : 2;
+                                    const soundName = `footsteps_tile_${randIdx}`;
+                                    
+                                    // 5. Random Pitch (Variasi)
+                                    // Rate: 0.9 sampai 1.1 + Modifikasi Lari
+                                    const baseRate = this.isRunning ? 1.2 : 1.0;
+                                    const randomRate = baseRate + (Math.random() * 0.2 - 0.1); 
+                                    
+                                    this.currentOneShotSound = window.soundManager.playSound(soundName, {
+                                        volume: this.isRunning ? 0.8 : 0.6,
+                                        loop: false
+                                    });
+
+                                    // Apply Pitch ke instance yang baru dibuat
+                                    if (this.currentOneShotSound) {
+                                        this.currentOneShotSound.setPlaybackRate(randomRate);
+                                    }
+                                }
+
+                            } else {
+                                // --- MODE LOOP (KAYU/KARPET) ---
+                                // Reset discrete tracker
+                                if (this.currentOneShotSound) {
+                                    if (this.currentOneShotSound.isPlaying) this.currentOneShotSound.stop();
+                                    this.currentOneShotSound = null;
+                                }
+
+                                let targetSoundName = 'walking_wood'; 
+                                if (this.currentSurface === 'carpet') {
+                                    targetSoundName = 'footsteps_carpet';
+                                }
+
+                                // Reset timer discrete agar saat masuk keramik langsung bunyi
+                                this.stepTimer = 100; 
+
+                                // Logic Ganti Track Loop
+                                if (this.currentPlayingSoundName && this.currentPlayingSoundName !== targetSoundName) {
+                                    if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
+                                        this.walkSoundLoop.stop();
+                                    }
+                                    this.walkSoundLoop = null; 
+                                }
+
+                                // Start Loop
+                                if (!this.walkSoundLoop || !this.walkSoundLoop.isPlaying) {
+                                    this.walkSoundLoop = window.soundManager.playSound(targetSoundName, { 
+                                        volume: 0.6, 
+                                        loop: true 
+                                    });
+                                    this.currentPlayingSoundName = targetSoundName;
+                                }
+
+                                // Update Rate
+                                if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
+                                    const targetRate = this.isRunning ? 1.5 : 1.0;
+                                    this.walkSoundLoop.setPlaybackRate(targetRate);
+                                    this.walkSoundLoop.setVolume(this.isRunning ? 0.8 : 0.6);
+                                }
                             }
                         }
                     } else {
@@ -638,8 +695,42 @@ export class CameraManager {
                 // Diam (Idle) -> Matikan Sound
                 this.stepTimer = 0;
                 
+                // A. Matikan Loop (Wood/Carpet)
                 if (window.soundManager && this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
                     this.walkSoundLoop.stop();
+                }
+
+                // B. Matikan Discrete (Ceramic) - Seamlessly
+                // User Request: "Pendekkan ke 0.2 detik"
+                if (this.currentOneShotSound) {
+                    const soundToKill = this.currentOneShotSound;
+                    this.currentOneShotSound = null; // Detach immediately
+
+                    if (soundToKill.isPlaying) {
+                        if (window.gsap) {
+                            // Fade Out 0.2s menggunakan GSAP
+                            // Kita tween property 'gain.gain.value' atau volume wrapper jika ada
+                            // THREE.Audio -> soundToKill.setVolume() is a wrapper for gainNode.
+                            // Kita tween object dummy agar bisa panggil setVolume tiap frame atau langsung ke gainNode.
+                            
+                            // Cara aman akses GainNode: soundToKill.getOutput().gain.value
+                            // Tapi setVolume juga mengupdate this.gain.gain.value
+                            const startVol = soundToKill.getVolume();
+                            window.gsap.to(soundToKill.gain.gain, {
+                                value: 0,
+                                duration: 0.2,
+                                onComplete: () => {
+                                    if(soundToKill.isPlaying) soundToKill.stop();
+                                    soundToKill.setVolume(startVol); // Reset vol (just in case reused, though it's new instance)
+                                }
+                            });
+                        } else {
+                            // Fallback jika tidak ada GSAP
+                            setTimeout(() => {
+                                if (soundToKill.isPlaying) soundToKill.stop();
+                            }, 200);
+                        }
+                    }
                 }
             }
 
