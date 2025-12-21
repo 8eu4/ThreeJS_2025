@@ -23,6 +23,37 @@ export class StoryManager {
         this.currentViewMode = 'ORBIT';
         this.allLights = this.lightingManager.lights;
 
+        // --- [UPDATE] FOOTSTEP TRACKING VARS ---
+        this._accumulatedDistance = 0; 
+        
+        // UBAH: Perbesar angka ini (misal 2.5) agar langkah tidak terlalu rapat saat kamera ngebut
+        this._strideLength = 2.5;      
+        
+        // BARU: Jeda minimal antar langkah (0.35 detik = kecepatan lari manusia normal)
+        this._stepCooldown = 0.35; 
+        
+        // BARU: Penanda waktu langkah terakhir
+        this._lastStepTime = 0;
+
+        this._raycaster = new THREE.Raycaster(); 
+        this._raycaster.firstHitOnly = true;
+
+        // --- [UPDATE] FOOTSTEP TRACKING VARS ---
+        this._accumulatedDistance = 0;
+        
+        // Config Langkah
+        this._baseStride = 2.0;       // Jarak langkah standar (saat jalan santai)
+        this._baseSpeed = 2.5;        // Kecepatan jalan "normal" (unit/detik). Di atas ini, stride akan melar.
+        this._stepCooldown = 0.4;     // Jeda minimum (detik) agar tidak "blender"
+
+        // State Tracking
+        this._lastStepTime = 0;       // Waktu bunyi terakhir
+        this._lastFrameTime = 0;      // Waktu frame sebelumnya (untuk hitung speed)
+        this._currentFootstepSound = null; 
+
+        this._raycaster = new THREE.Raycaster();
+        this._raycaster.firstHitOnly = true;
+
         // Set kondisi awal Buka (Tanpa animasi)
         this._preloadAllScenes().then(() => {
                 console.log("👁️ Loading Selesai. Membuka Mata...");
@@ -55,9 +86,10 @@ export class StoryManager {
         console.groupEnd();
     }
 
-// ==========================================
+    // ==========================================
     //               SCENE 01
     // ==========================================
+    
     async scene01_WakeUp() {
         if (!this.isSetupMode) console.log("--- Scene 1 ---");
         if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
@@ -77,15 +109,15 @@ export class StoryManager {
         if(!this.isSetupMode) console.log("Bangun...");
 
         // --- 1 LINE ACTION ---
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_getup", { x: -65.25, y: 9.24, z: -38.57 }, { y: 180 }), 3.0);
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_lookleft", { x: -65.25, y: 9.24, z: -38.57 }, { y: 210 }), 1.0);
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_lookright", { x: -65.25, y: 9.24, z: -38.57 }, { y: 150 }), 2.0);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_getup", { x: -65.25, y: 9.24, z: -38.57 }, { y: 180 }), 3.0, "power2.inOut", false, false);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_lookleft", { x: -65.25, y: 9.24, z: -38.57 }, { y: 210 }), 1.0, "power2.inOut", false, false);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_lookright", { x: -65.25, y: 9.24, z: -38.57 }, { y: 150 }), 2.0, false, false);
         await this.playerMoveToWaypoint("Scene01_getup", 1.0);
         
         this._blinkSequence();
 
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksidedown", { x: -70.45, y: 8.54, z: -40.44 }, { x: -90, y: 90}), 3.0);
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksideup", { x: -71.17, y: 10.91, z: -40.59 }, { y: 150 }), 2.0);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksidedown", { x: -70.45, y: 8.54, z: -40.44 }, { x: -90, y: 90}), 3.0, "power2.inOut", false, false);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_looksideup", { x: -71.17, y: 10.91, z: -40.59 }, { y: 150 }), 2.0, "power2.inOut", false, false);
         
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_gotodoor_1", { x: -84.53, y: 10.91, z: -22.77 }, { y: 150 }), 6.0, "none");
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene01_gotodoor_2", { x: -86, y: 10.91, z: -21 }, { y: 89 }), 1.0, "none");
@@ -161,6 +193,7 @@ export class StoryManager {
             }
         });
     }
+    
     async scene03_Kitchen() {
         if (!this.isSetupMode) {
             console.log("--- Scene 3 ---");
@@ -432,8 +465,8 @@ export class StoryManager {
 
         try {
             // --- MULAI SEQUENCE ---
-            // await this.scene01_WakeUp();
-            // await this.scene02_BedroomCorridor();
+            await this.scene01_WakeUp();
+            await this.scene02_BedroomCorridor();
             await this.scene03_Kitchen();
             await this.scene04_LongCorridor();
             // --- SELESAI ---
@@ -555,6 +588,8 @@ export class StoryManager {
         rig.rotation.set(0, e.y, 0, 'YXZ');
         cam.rotation.set(e.x, 0, e.z, 'YXZ');
 
+        this._lastStepTime = 0;
+
         // B. LOGIKA UNTUK MODE ORBIT (PENTING!)
         if (this.currentViewMode === 'ORBIT') {
             // Pindahkan kamera tepat ke posisi waypoint
@@ -568,6 +603,61 @@ export class StoryManager {
             if (this.cameraManager.orbitControls) {
                 this.cameraManager.orbitControls.target.copy(waypoint.position);
                 this.cameraManager.orbitControls.update();
+            }
+        }
+
+        this._accumulatedDistance = 0;
+    }
+
+    _triggerFootstep() {
+        if (!window.soundManager) return;
+
+        // 1. Raycast Cek Lantai
+        const rigPos = this.cameraManager.cameraRig.position;
+        this._raycaster.set(rigPos, new THREE.Vector3(0, -1, 0));
+        this._raycaster.far = 5.0;
+
+        const intersects = this._raycaster.intersectObjects(this.scene.children, true);
+        
+        if (intersects.length > 0) {
+            const hit = intersects[0];
+            if (hit.object.userData && hit.object.userData.isWaypoint) return;
+
+            const objName = (hit.object.name || "").toLowerCase();
+            const matName = (hit.object.material && hit.object.material.name || "").toLowerCase();
+
+            // 2. Pilih Suara (Sama seperti FPS)
+            let soundName = 'walking_wood'; 
+
+            // Deteksi Karpet
+            if (objName.includes('carpet') || objName === 'frontside_37') {
+                soundName = 'footsteps_carpet';
+            }
+            // Deteksi Keramik/Lantai Keras
+            else if (objName.includes('tile') || objName.includes('ceramic') || objName.includes('kitchen') || 
+                matName.includes('tile') || matName.includes('ceramic') || objName.includes('stone') || 
+                objName.includes('concrete') || objName.includes('floor')) {
+                
+                const randIdx = Math.random() > 0.5 ? 1 : 2;
+                soundName = `footsteps_tile_${randIdx}`;
+            }
+
+            // --- [PERBAIKAN UTAMA: STOP SUARA SEBELUMNYA] ---
+            if (this._currentFootstepSound && this._currentFootstepSound.isPlaying) {
+                this._currentFootstepSound.stop();
+            }
+            // -------------------------------------------------
+
+            // 3. Play Suara Baru
+            // Volume disesuaikan agar menyatu (blend)
+            this._currentFootstepSound = window.soundManager.playSound(soundName, { 
+                volume: 0.5, 
+                loop: false 
+            });
+            
+            // Variasi Pitch (0.95 - 1.05) agar tidak terdengar seperti robot, tapi tetap halus
+            if (this._currentFootstepSound) {
+                this._currentFootstepSound.setPlaybackRate(0.95 + Math.random() * 0.1);
             }
         }
     }
@@ -633,7 +723,8 @@ export class StoryManager {
         });
     }
 
-    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut", useLongestPath = false) {
+    // Update parameter: tambahkan 'playSteps' (default true)
+    playerMoveToWaypoint(waypointName, duration, easeType = "power2.inOut", useLongestPath = false, playSteps = true) {
         if (this.isSetupMode) return Promise.resolve();
         this._checkCancellation();
 
@@ -641,14 +732,25 @@ export class StoryManager {
             const waypoint = this.scene.getObjectByName(waypointName);
             if (!waypoint) { resolve(); return; }
 
+            // Kill Switch Awal
+            if (!playSteps && this._currentFootstepSound && this._currentFootstepSound.isPlaying) {
+                this._currentFootstepSound.stop();
+            }
+
             const rig = this.cameraManager.cameraRig;
             const cam = this.cameraManager.camera;
+            
             const startRigY = rig.rotation.y;
             const startCamX = cam.rotation.x;
-            const startCamZ = cam.rotation.z; // [PERBAIKAN] Ambil rotasi Z awal kamera
+            const startCamZ = cam.rotation.z;
             const startPos = rig.position.clone();
-            // 2. Ambil Target dari Waypoint
-            // Pastikan order 'YXZ' sama dengan setting CameraManager agar sinkron
+            const prevPos = rig.position.clone(); 
+            
+            // Reset timer
+            this._lastFrameTime = performance.now() / 1000;
+            // [PENTING] Reset lastStepTime ke masa lalu agar langkah pertama bisa langsung bunyi
+            // this._lastStepTime = 0; 
+
             const targetEuler = new THREE.Euler().setFromQuaternion(waypoint.quaternion, 'YXZ');
 
             const calculateDiff = (target, start, longest) => {
@@ -659,9 +761,9 @@ export class StoryManager {
                 return diff;
             };
 
-            const diffY = calculateDiff(targetEuler.y, startRigY, useLongestPath); // Y = Rig (Badan)
-            const diffX = calculateDiff(targetEuler.x, startCamX, false);          // X = Camera (Pitch)
-            const diffZ = calculateDiff(targetEuler.z, startCamZ, false);          // [PERBAIKAN] Z = Camera (Roll/Miring)
+            const diffY = calculateDiff(targetEuler.y, startRigY, useLongestPath);
+            const diffX = calculateDiff(targetEuler.x, startCamX, false);
+            const diffZ = calculateDiff(targetEuler.z, startCamZ, false);
 
             const proxy = { t: 0 };
             gsap.to(proxy, {
@@ -671,23 +773,62 @@ export class StoryManager {
                 onUpdate: () => {
                     if (this.isCancelled) {
                         gsap.killTweensOf(proxy);
-                        // No resolve, let it die
                         return; 
                     }
+                    
+                    const now = performance.now() / 1000;
+                    const dt = now - this._lastFrameTime;
+                    this._lastFrameTime = now;
+
                     const alpha = proxy.t;
                     rig.position.lerpVectors(startPos, waypoint.position, alpha);
 
-                    // Terapkan rotasi berdasarkan selisih yang sudah dihitung
+                    // --- [LOGIKA BARU: VELOCITY-BASED TIMER] ---
+                    if (playSteps && dt > 0) {
+                        const dist = rig.position.distanceTo(prevPos);
+                        const currentSpeed = dist / dt; // Unit per detik
+
+                        // 1. THRESHOLD KECEPATAN (Anti Langkah Hantu)
+                        // Hanya bunyi jika speed > 0.5. 
+                        // Ini akan otomatis membungkam suara saat easing melambat di akhir.
+                        if (currentSpeed > 0.3) { 
+                            
+                            // 2. HITUNG INTERVAL BERDASARKAN SPEED (Anti Suara Kuda)
+                            // Semakin cepat, interval makin kecil (tapi dibatasi min 0.3s)
+                            // Rumus: Base 0.5s. Jika speed 2x lipat, interval jadi 0.25s.
+                            let targetInterval = 0.9 / (currentSpeed / 2.5); // 2.5 adalah asumsi speed normal
+                            
+                            // Clamp interval: Jangan pernah lebih cepat dari 0.3 detik!
+                            targetInterval = Math.max(0.3, targetInterval);
+                            // Cap max interval: Jangan terlalu lambat juga
+                            targetInterval = Math.min(0.8, targetInterval);
+
+                            // 3. TRIGGER CHECK
+                            if (now - this._lastStepTime > targetInterval) {
+                                this._triggerFootstep();
+                                this._lastStepTime = now;
+                            }
+                        }
+                    }
+                    prevPos.copy(rig.position);
+                    // -------------------------------------------
+
                     rig.rotation.y = startRigY + diffY * alpha;
                     cam.rotation.x = startCamX + diffX * alpha;
-                    cam.rotation.z = startCamZ + diffZ * alpha; // [PERBAIKAN] Terapkan animasi Z
+                    cam.rotation.z = startCamZ + diffZ * alpha;
                 },
                 onComplete: () => {
-                    if (!this.isCancelled) resolve();
+                    if (!this.isCancelled) {
+                        // Kill Switch Akhir (Safety Net)
+                        if (this._currentFootstepSound && this._currentFootstepSound.isPlaying) {
+                            this._currentFootstepSound.stop();
+                        }
+                        resolve();
+                    }
                 }
             });
         });
-    }  
+    }
 
     animateDoor(doorName, targetAngleDeg, duration) {
         if (this.isSetupMode) return Promise.resolve();
