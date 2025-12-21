@@ -21,7 +21,7 @@ export class StoryManager {
 
         // untuk debug
         this.currentViewMode = 'ORBIT';
-
+        this.allLights = this.lightingManager.lights;
 
         // Set kondisi awal Buka (Tanpa animasi)
         this._preloadAllScenes().then(() => {
@@ -114,10 +114,10 @@ export class StoryManager {
             this._waitAndRun(3, () => this.blink(1)),
         ]);
 
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }), 2, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }), 2, "power2.in");
 
         //debug
-        this._instantSetPosition(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }));
+        // this._instantSetPosition(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }));
 
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walktokitchen", { x: -47.06, y: 10.91, z: -54.90 }, { y: -90 }), 10, "none"),
@@ -130,9 +130,9 @@ export class StoryManager {
     // ==========================================
     //               SCENE 03
     // ==========================================
-    async scene03_Kitchen() {
-        if (!this.isSetupMode) {
-            console.log("--- Scene 3 ---");
+    turnOffLamps(){
+        if (this.isSetupMode) return Promise.resolve();
+        return new Promise(resolve => {
             const lightIds = [
                 'light_Bedroom_1', 'light_Bedroom_2', 'light_Bedroom_3', 
                 'light_Bedroom_4', 'light_Bedroom_5', 'light_Bedroom_6', 'light_Bedroom_7'
@@ -140,26 +140,45 @@ export class StoryManager {
 
             const objectsToAnimate = [];
             lightIds.forEach(id => {
-                const lightObj = this.allLights[id]; // Ambil dari daftar lampu
+                const lightObj = this.allLights[id]; // Mengambil dari LightingManager
                 if (lightObj) {
-                    lightObj.castShadow = false; 
                     objectsToAnimate.push(lightObj);
                 }
             });
 
             if (objectsToAnimate.length > 0) {
-                gsap.set(objectsToAnimate, { intensity: 0 });
+                // Gunakan GSAP untuk mematikan intensitas dan sembunyikan saat selesai
+                gsap.to(objectsToAnimate, { 
+                    intensity: 0, 
+                    duration: 0.5,
+                    onComplete: () => {
+                        objectsToAnimate.forEach(l => l.visible = false);
+                        resolve(); 
+                    }
+                });
+            } else {
+                resolve();
             }
+        });
+    }
+    async scene03_Kitchen() {
+        if (!this.isSetupMode) {
+            console.log("--- Scene 3 ---");
         }
 
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_enterkitchen", { x:-37.11, y:10.91, z:-53.99 }, { y: -90 }), 4, "none");
         
         await this.runParallel([
             this.animateDoor("Door_ToKitchen", 0, 1),
-            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x:-33.17, y:10.91, z:-53.99 }, { x:-21.00, y:-31.00 }), 4, "power2.in")
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x:-33.17, y:10.91, z:-53.99 }, { x:-21.00, y:-31.00 }), 4, "power2.in"),
         ]);
-
-        await this._wait(2);
+        
+        await this._wait(1);
+        if (!this.isSetupMode) { 
+            await this.turnOffLamps();
+        }
+        await this.turnOffLamps()
+        await this._wait(1);
 
 
         await this.runParallel([
@@ -181,22 +200,7 @@ export class StoryManager {
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_felldown3", { x:-29.49, y:7.90, z:-47.89 }, { x:-5.70, y:-10.60, z:-88.80 }), 0.4, "none");
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_felldown4", { x:-28.37, y:4.15, z:-47.67 }, { x:-5.70, y:-10.60, z:-88.80 }), 0.3, "none");
         
-        // await this._wait(1);
-        // await this._waitAndRun(0.5, () => this.playerMoveToWaypoint(
-        //     this.defineWaypoint("Scene03_confuseright_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: -70 }), 0.5, "none"
-        // ));
-        // this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseleft_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: 70 }), 0.5, "none"),
-        // this._waitAndRun(0.5, () => this.playerMoveToWaypoint("Scene03_confuseleft_2", 1.5, "none")),
-        // this._waitAndRun(1.5, () => this.playerMoveToWaypoint("Scene03_backaway", 0.5, "none")),
-
-        // await this.runParallel([
-        //     this._waitAndRun(3, () => this.playerMoveToWaypoint(
-        //         this.defineWaypoint("Scene03_scared_1", { x: -33.47, y: 10.91, z: -48.18 }, { x: -59, y: -59 }), 0.5, "power2.out"
-        //     )),
-        //     this._waitAndRun(3.2, () => this.setEyeOpenness(0, 0.5)),
-        // ]);
-
-        await this._wait(3);
+        await this._wait(1);
 
         await this.runParallel([
             this.setMonsterVisibility("Ghost_Kitchen_Window", false),
@@ -220,10 +224,16 @@ export class StoryManager {
         await this._wait(5);
         await this.setMonsterVisibility("Ghost_Kitchen", false);
         await this.setEyeOpenness(1.0, 2.5);
-        await this._wait(2);
+        await this._wait(1);
+        await this.runParallel([
+            this._setLightFlicker('light_kitchen_1', true, 0, 0),
+            this._setLightFlicker('light_kitchen_2', true, 0, 0),
+        ]);
+        await this._wait(1);
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_relief_1", { x: -28.89, y: 5.31, z: -48.18 }, { x: -40, y: 80 }), 2, "power2.out");
         await this._wait(1);
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_relief_2", { x: -28.89, y: 5.31, z: -48.18 }, { x: -40, y: 50 }), 2, "power2.out");
+
 
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene03_standup_1", { x: -29, y: 7, z: -48 }, { x: -50, y: 77.3, z: 10 }), 2, "none"),
@@ -386,6 +396,7 @@ export class StoryManager {
             this._waitAndRun(8.2, () => this.setEyeOpenness(0, 0.5)),
 
         ]);
+        await this._wait(1);
 
     }
     // ==========================================
@@ -418,8 +429,8 @@ export class StoryManager {
         this._setCinematicMode(true, this.currentViewMode);
 
         // --- MULAI SEQUENCE ---
-        await this.scene01_WakeUp();
-        await this.scene02_BedroomCorridor();
+        // await this.scene01_WakeUp();
+        // await this.scene02_BedroomCorridor();
         await this.scene03_Kitchen();
         await this.scene04_LongCorridor();
         // --- SELESAI ---
@@ -664,7 +675,7 @@ export class StoryManager {
 
         if (this.lightingManager) {
             console.log(`[Story] Mengatur Senter ke: ${isOn ? 'NYALA' : 'MATI'}`);
-            this.lightingManager.setFlashlight(isOn);
+            this.lightingManager.toggleFlashlight(isOn);
         } else {
             console.warn("⚠️ LightingManager belum terhubung ke StoryManager.");
         }
