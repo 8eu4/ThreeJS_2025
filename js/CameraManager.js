@@ -100,13 +100,184 @@ export class CameraManager {
         // Kita set 'far' sedikit lebih jauh dari padding agar deteksi akurat
         this.raycaster.far = this.collisionPadding * 1.5;
 
-        // --- FOOTSTEP VARS ---
-        this.stepTimer = 0;
-        this.stepInterval = 0.5; // Detik per langkah (Jalan)
-        this.runStepInterval = 0.3; // Detik per langkah (Lari)
+
+        this.interactObject = null; // Menyimpan objek yang sedang dilihat
+        this.showDebugArrow = true; // Aktifkan panah debug
+
+        if (this.showDebugArrow) {
+            this.debugArrow = new THREE.ArrowHelper(
+                new THREE.Vector3(0, 0, -1),
+                new THREE.Vector3(0, 0, 0),
+                4, // Panjang panah
+                0xffff00 // Warna kuning
+            );
+            this.scene.add(this.debugArrow);
+        }
+
+        this.highlightedDoor = null;
+        this.isDoorAnimating = false;
+        this.lastInteractObject = null;
 
         this._setupInputs();
     }
+
+
+    checkDoorInteraction() {
+        // [FIX 1] GUNAKAN POSISI KAMERA (MATA), BUKAN RIG (KAKI)
+        // Raycaster dari tengah layar (0,0) menggunakan kamera aktif
+        this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+        this.raycaster.far = 12.0; // Jarak sedikit diperjauh biar nyaman
+
+        const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+
+        // Cari kandidat pintu baru
+        let newDoorCandidate = null;
+
+        for (let i = 0; i < intersects.length; i++) {
+            const hit = intersects[i];
+
+            // Validasi: Abaikan benda invisible / debug / garis
+            if (!hit.object.visible) continue;
+            if (hit.object.type === 'Line' || hit.object.type === 'LineSegments') continue;
+            if (hit.object.name.includes("Debug")) continue;
+
+            // Cek apakah benda ini bagian dari pintu?
+            const root = this._findDoorRoot(hit.object);
+            if (root) {
+                newDoorCandidate = root;
+                break; // Ketemu pintu terdekat, stop loop
+            }
+        }
+
+        // [FIX 2] LOGIKA STATE CHANGE (Hanya ubah warna kalau target BERUBAH)
+        // Ini mencegah flicker dan warna nyangkut
+        if (newDoorCandidate !== this.lastInteractObject) {
+
+            // 1. Matikan lampu pintu LAMA (jika ada)
+            if (this.lastInteractObject) {
+                this._setHighlight(this.lastInteractObject, 0x000000); // Hitam (Normal)
+            }
+
+            // 2. Nyalakan lampu pintu BARU (jika ada)
+            if (newDoorCandidate) {
+                this._setHighlight(newDoorCandidate, 0x004400); // Hijau
+            }
+
+            // 3. Simpan state
+            this.lastInteractObject = newDoorCandidate;
+            this.interactObject = newDoorCandidate;
+        }
+    }
+
+    // [FUNGSI BARU] Mencari Bapak/Leluhur Tertinggi yang bernama "Door"
+    _findDoorRoot(obj) {
+        let curr = obj;
+        let doorRoot = null;
+
+        // Naik terus sampai Scene
+        while (curr && curr.type !== 'Scene') {
+            const name = (curr.name || "").toLowerCase();
+
+            // Jika ketemu kata door, simpan ini sebagai kandidat "Root"
+            // Tapi jangan berhenti, siapa tau bapaknya dia adalah Group Door yang lebih besar
+            if (name.includes("door")) {
+                doorRoot = curr;
+            }
+            curr = curr.parent;
+        }
+
+        return doorRoot; // Akan mengembalikan null jika tidak ada silsilah door
+    }
+
+    // [FUNGSI BARU] Helper untuk mewarnai satu keluarga
+    _setHighlight(object, colorHex) {
+        if (!object) return;
+
+        object.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // Clone material agar tidak merusak objek lain yang pakai material sama
+                // (Opsional, tapi disarankan kalau asetnya sharing material)
+                if (!child.userData.originalMaterial) {
+                    child.userData.originalMaterial = child.material.clone();
+                    child.material = child.userData.originalMaterial;
+                }
+
+                if (child.material.emissive) {
+                    child.material.emissive.setHex(colorHex);
+
+                    // Pastikan emissive intensity-nya cukup
+                    if (child.material.emissiveIntensity !== undefined) {
+                        child.material.emissiveIntensity = (colorHex === 0x000000) ? 0 : 0.5;
+                    }
+                }
+            }
+        });
+    }
+
+    // Fungsi bantu untuk menyalakan/mematikan visual emissive pada seluruh anak mesh
+    _toggleDoorHighlight(object, colorHex) {
+        object.traverse(node => {
+            if (node.isMesh && node.material && node.material.emissive) {
+                node.material.emissive.setHex(colorHex);
+            }
+        });
+    }
+
+    _isValidInteractionTarget(obj) {
+        if (!obj.visible) return false;
+
+        let curr = obj;
+        while (curr && curr.type !== 'Scene') {
+            const name = (curr.name || "").toLowerCase();
+            if (name.includes("door")) {
+                return true;
+            }
+            curr = curr.parent;
+        }
+
+        return false;
+    }
+
+    _handleDoorLogic(door) {
+        // 1. Guard Clause: Jika sedang animasi, abaikan input (mencegah glitch/spam)
+        if (this.isDoorAnimating) return;
+
+        const name = door.name.toLowerCase();
+
+        // 2. Tentukan Sudut Target Berdasarkan Nama
+        // Kita tentukan "Sudut Terbuka" nya dulu
+        let openAngle = THREE.MathUtils.degToRad(90); // Default 90
+        if (name.includes('bedroom')) {
+            openAngle = THREE.MathUtils.degToRad(90);
+        } else if (name.includes('corridor')) {
+            openAngle = THREE.MathUtils.degToRad(90);
+        } else if (name.includes('kitchen')) {
+            openAngle = THREE.MathUtils.degToRad(90);
+        }
+
+        // 3. Logika Toggle (Buka/Tutup)
+        // Jika rotasi sekarang mendekati 0, maka targetnya adalah 'openAngle'
+        // Jika rotasi sekarang TIDAK 0 (sudah terbuka), maka targetnya adalah 0 (tutup)
+        const isClosed = Math.abs(door.rotation.y) < 0.01;
+        const targetY = isClosed ? openAngle : 0;
+
+        this.isDoorAnimating = true;
+
+        // 4. Eksekusi Animasi dengan GSAP
+        gsap.to(door.rotation, {
+            y: targetY,
+            duration: 1.0, // Sedikit lebih cepat agar terasa responsif
+            ease: "power2.inOut",
+            onComplete: () => {
+                this.isDoorAnimating = false;
+
+                // Safety Clamp: Pastikan angkanya presisi di akhir animasi
+                door.rotation.y = targetY;
+                console.log(`Pintu ${isClosed ? 'Dibuka' : 'Ditutup'} ke: ${targetY}`);
+            }
+        });
+    }
+
     _createDebugBody() {
         const old = this.cameraRig.getObjectByName("Debug_Player_Cylinder");
         if (old) this.cameraRig.remove(old);
@@ -153,6 +324,12 @@ export class CameraManager {
                 case 'KeyS': this.moveBackward = true; break;
                 case 'ArrowRight':
                 case 'KeyD': this.moveRight = true; break;
+
+                case 'KeyG':
+                    if (this.interactObject) {
+                        this._handleDoorLogic(this.interactObject);
+                    }
+                    break;
 
                 case 'KeyQ':
                     this.moveDown = true;
@@ -327,6 +504,9 @@ export class CameraManager {
             if (name.includes("transformcontrols")) return false;
             if (type.includes("Controls")) return false;
             if (type.includes("Helper")) return false;
+
+            if (name.includes("backside_2")) return false;
+
             if (curr.userData && curr.userData.isWaypoint) return false;
 
             curr = curr.parent;
@@ -366,7 +546,7 @@ export class CameraManager {
                 parent = parent.parent;
             }
             if (monsterObj) {
-                if (monsterObj.scale.x < 0.1) continue; 
+                if (monsterObj.scale.x < 0.1) continue;
 
                 const dx = this.cameraRig.position.x - monsterObj.position.x;
                 const dz = this.cameraRig.position.z - monsterObj.position.z;
@@ -397,6 +577,9 @@ export class CameraManager {
             this.tempRayOrigin.y += offset;
 
             this.raycaster.set(this.tempRayOrigin, directionVec);
+            const arrow = new THREE.ArrowHelper(directionVec, this.tempRayOrigin, this.collisionPadding, 0xffff00);
+            this.scene.add(arrow);
+            setTimeout(() => this.scene.remove(arrow), 100);
 
             // Cek ke seluruh anak Scene
             const intersects = this.raycaster.intersectObjects(this.scene.children, true);
@@ -408,6 +591,11 @@ export class CameraManager {
 
                 // Cek Face agar tidak nabrak garis aneh
                 if (!hit.face) continue;
+
+                console.warn(`🛑 COLLISION DETECTED!`);
+                console.log(`Benda: %c${hit.object.name}`, "color: yellow; font-weight: bold");
+                console.log(`Tipe: ${hit.object.type}`);
+                console.log(`Posisi Benda:`, hit.object.position);
 
                 return true; // TABRAK
             }
@@ -437,31 +625,6 @@ export class CameraManager {
 
             groundY = hit.point.y;
             foundGround = true;
-
-            // --- DETEKSI JENIS LANTAI ---
-            const objName = (hit.object.name || "").toLowerCase();
-            const matName = (hit.object.material && hit.object.material.name || "").toLowerCase();
-            
-            // Debug Info
-            this.debugHitObjectName = hit.object.name; // Simpan nama asli (case sensitive)
-            this.debugHitMatName = hit.object.material ? hit.object.material.name : "No Material";
-
-            // Keyword untuk lantai keras/keramik
-            if (objName.includes('tile') || objName.includes('ceramic') || objName.includes('kitchen') || 
-                matName.includes('tile') || matName.includes('ceramic') || matName.includes('kitchen') ||
-                objName.includes('stone') || objName.includes('concentre') || objName.includes('floor') ||
-                objName.includes('frontside_45') || (objName === 'frontside_50' || objName.startsWith('frontside_50.')) || objName.includes('env565')) { // [UPDATED] Specific user objects
-                
-                this.currentSurface = 'ceramic';
-            
-            } else if (objName === 'frontside_37' || objName.startsWith('frontside_37.')) {
-                
-                this.currentSurface = 'carpet'; // [NEW] Karpet
-
-            } else {
-                // Default ke kayu (karena rumah kayu)
-                this.currentSurface = 'wood';
-            }
             break;
         }
 
@@ -532,6 +695,7 @@ export class CameraManager {
             }
 
         } else if (this.activeMode === 'FPS') {
+            this.checkDoorInteraction();
 
             // --- ROLL / MIRING CONTINUOUS (TETAP SAMA) ---
             const spinSpeed = 2.0;
@@ -584,153 +748,15 @@ export class CameraManager {
             const frameMove = this.currentMoveVelocity.clone().multiplyScalar(delta);
 
             // Cek Collision hanya jika ada pergerakan signifikan
-            // Cek Collision hanya jika ada pergerakan signifikan
             if (frameMove.lengthSq() > 0.000001) {
                 const moveDir = frameMove.clone().normalize();
 
                 // Gunakan fungsi collision yang sudah dioptimasi
                 if (!this._checkWallCollision(moveDir)) {
                     this.cameraRig.position.add(frameMove);
-
-                    // --- FOOTSTEP LOGIC (DYNAMIC SURFACE) ---
-                    if (this.canJump) {
-                        if (window.soundManager) {
-                            
-                            // HYBRID SYSTEM:
-                            
-                            if (this.currentSurface === 'ceramic' || this.currentSurface === 'concrete' || this.currentSurface === 'stone') {
-                                // --- MODE DISCRETE (RANDOM & VARIED) ---
-                                
-                                // 1. Matikan Loop (Wood/Carpet) jika masih nyala
-                                if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
-                                    this.walkSoundLoop.stop();
-                                    this.walkSoundLoop = null;
-                                }
-
-                                // 2. Hitung Timer
-                                const currentInterval = this.isRunning ? this.runStepInterval : this.stepInterval;
-                                this.stepTimer += delta;
-
-                                if (this.stepTimer > currentInterval) {
-                                    this.stepTimer = 0; // Reset
-
-                                    // 3. Matikan step sebelumnya (Anti-Bertumpuk)
-                                    // Kita stop sound discrete sebelumnya biar ga tabrakan parah
-                                    if (this.currentOneShotSound && this.currentOneShotSound.isPlaying) {
-                                        this.currentOneShotSound.stop();
-                                    }
-
-                                    // 4. Play Random File
-                                    const randIdx = Math.random() > 0.5 ? 1 : 2;
-                                    const soundName = `footsteps_tile_${randIdx}`;
-                                    
-                                    // 5. Random Pitch (Variasi)
-                                    // Rate: 0.9 sampai 1.1 + Modifikasi Lari
-                                    const baseRate = this.isRunning ? 1.2 : 1.0;
-                                    const randomRate = baseRate + (Math.random() * 0.2 - 0.1); 
-                                    
-                                    this.currentOneShotSound = window.soundManager.playSound(soundName, {
-                                        volume: this.isRunning ? 0.8 : 0.6,
-                                        loop: false
-                                    });
-
-                                    // Apply Pitch ke instance yang baru dibuat
-                                    if (this.currentOneShotSound) {
-                                        this.currentOneShotSound.setPlaybackRate(randomRate);
-                                    }
-                                }
-
-                            } else {
-                                // --- MODE LOOP (KAYU/KARPET) ---
-                                // Reset discrete tracker
-                                if (this.currentOneShotSound) {
-                                    if (this.currentOneShotSound.isPlaying) this.currentOneShotSound.stop();
-                                    this.currentOneShotSound = null;
-                                }
-
-                                let targetSoundName = 'walking_wood'; 
-                                if (this.currentSurface === 'carpet') {
-                                    targetSoundName = 'footsteps_carpet';
-                                }
-
-                                // Reset timer discrete agar saat masuk keramik langsung bunyi
-                                this.stepTimer = 100; 
-
-                                // Logic Ganti Track Loop
-                                if (this.currentPlayingSoundName && this.currentPlayingSoundName !== targetSoundName) {
-                                    if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
-                                        this.walkSoundLoop.stop();
-                                    }
-                                    this.walkSoundLoop = null; 
-                                }
-
-                                // Start Loop
-                                if (!this.walkSoundLoop || !this.walkSoundLoop.isPlaying) {
-                                    this.walkSoundLoop = window.soundManager.playSound(targetSoundName, { 
-                                        volume: 0.6, 
-                                        loop: true 
-                                    });
-                                    this.currentPlayingSoundName = targetSoundName;
-                                }
-
-                                // Update Rate
-                                if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
-                                    const targetRate = this.isRunning ? 1.5 : 1.0;
-                                    this.walkSoundLoop.setPlaybackRate(targetRate);
-                                    this.walkSoundLoop.setVolume(this.isRunning ? 0.8 : 0.6);
-                                }
-                            }
-                        }
-                    } else {
-                        // Melayang -> Matikan
-                        if (this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
-                            this.walkSoundLoop.stop();
-                        }
-                    }
-
                 } else {
+                    // Jika nabrak, hentikan momentum agar tidak 'tembus' atau 'lengket'
                     this.currentMoveVelocity.set(0, 0, 0);
-                }
-            } else {
-                // Diam (Idle) -> Matikan Sound
-                this.stepTimer = 0;
-                
-                // A. Matikan Loop (Wood/Carpet)
-                if (window.soundManager && this.walkSoundLoop && this.walkSoundLoop.isPlaying) {
-                    this.walkSoundLoop.stop();
-                }
-
-                // B. Matikan Discrete (Ceramic) - Seamlessly
-                // User Request: "Pendekkan ke 0.2 detik"
-                if (this.currentOneShotSound) {
-                    const soundToKill = this.currentOneShotSound;
-                    this.currentOneShotSound = null; // Detach immediately
-
-                    if (soundToKill.isPlaying) {
-                        if (window.gsap) {
-                            // Fade Out 0.2s menggunakan GSAP
-                            // Kita tween property 'gain.gain.value' atau volume wrapper jika ada
-                            // THREE.Audio -> soundToKill.setVolume() is a wrapper for gainNode.
-                            // Kita tween object dummy agar bisa panggil setVolume tiap frame atau langsung ke gainNode.
-                            
-                            // Cara aman akses GainNode: soundToKill.getOutput().gain.value
-                            // Tapi setVolume juga mengupdate this.gain.gain.value
-                            const startVol = soundToKill.getVolume();
-                            window.gsap.to(soundToKill.gain.gain, {
-                                value: 0,
-                                duration: 0.2,
-                                onComplete: () => {
-                                    if(soundToKill.isPlaying) soundToKill.stop();
-                                    soundToKill.setVolume(startVol); // Reset vol (just in case reused, though it's new instance)
-                                }
-                            });
-                        } else {
-                            // Fallback jika tidak ada GSAP
-                            setTimeout(() => {
-                                if (soundToKill.isPlaying) soundToKill.stop();
-                            }, 200);
-                        }
-                    }
                 }
             }
 
