@@ -60,8 +60,8 @@ export class LightingManager {
     _setupFlashlight() {
         const flashLight = new THREE.SpotLight(0xfffdd0);
         flashLight.name = "Player Flashlight";
-        flashLight.angle = Math.PI / 6;
-        flashLight.penumbra = 0.6;
+        flashLight.angle = Math.PI / 5;
+        flashLight.penumbra = 0.99;
         flashLight.decay = 2;
         flashLight.distance = 100;
         flashLight.castShadow = true;
@@ -75,30 +75,35 @@ export class LightingManager {
         flashLight.shadow.camera.near = 0.001;
         flashLight.shadow.camera.far = 100;
 
-        flashLight.position.set(0, -1, 0);
+        flashLight.position.set(0, 0, 0);
+        flashLight.target.position.set(0, 0, -15);
 
-        // 2. POSISI TARGET (Di Tengah Depan Kamera)
-        // Sesuai requestmu: "ngambil posisi kamera ... ditambah vektor (0, -2, -15)"
-        flashLight.target.position.set(0, -1, -15);
+        const bounceLight = new THREE.PointLight(0xfffdd0, 0, 15);
+        bounceLight.name = "Flashlight_Bounce";
 
         this.camera.add(flashLight);
         this.camera.add(flashLight.target);
+        this.camera.add(bounceLight);
 
         // this.lights['player_flashlight'] = flashLight;
         // flashLight.visible = false;
 
         this.lights['player_flashlight'] = flashLight;
+        this.lights['flashlight_bounce'] = bounceLight;
         flashLight.visible = true;
         flashLight.intensity = 0; // Mati (Gelap)
     }
 
     toggleFlashlight() {
         const flashlight = this.lights['player_flashlight'];
+        const bounce = this.lights['flashlight_bounce'];
         if (flashlight) {
             if (flashlight.intensity > 0) {
                 flashlight.intensity = 0; // OFF
+                bounce.intensity = 0;
             } else {
-                flashlight.intensity = 500; // ON
+                flashlight.intensity = 100; // ON
+                bounce.intensity = 5;
             }
         }
     }

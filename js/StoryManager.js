@@ -101,20 +101,20 @@ export class StoryManager {
         if (!this.isSetupMode) console.log("--- Scene 2 ---");
         if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
 
-        // await this.runParallel([
-        //     this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walkoutside", { x: -94.75, y: 10.91, z: -21 }, { y: 0 }), 3),
-        //     this.moveMonsterTo("Ghost_Corridor", this.defineWaypoint("Scene02_monsterwalk_m", { x: -82.96, y: 3.53, z: -54.34 }, { y: -90 }), 6),
-        //     this._waitAndRun(3, () => this._blinkSequence()),
-        // ]);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walkoutside", { x: -94.75, y: 10.91, z: -21 }, { y: 0 }), 3),
+            this.moveMonsterTo("Ghost_Corridor", this.defineWaypoint("Scene02_monsterwalk_m", { x: -82.96, y: 3.53, z: -54.34 }, { y: -90 }), 6),
+            this._waitAndRun(3, () => this._blinkSequence()),
+        ]);
 
-        // await this.setMonsterVisibility("Ghost_Corridor", false);
+        await this.setMonsterVisibility("Ghost_Corridor", false);
 
-        // await this.runParallel([
-        //     this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walktocurve", { x: -94.75, y: 10.91, z: -51.52 }, { y: 0 }), 10, "none"),
-        //     this._waitAndRun(3, () => this.blink(1)),
-        // ]);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walktocurve", { x: -94.75, y: 10.91, z: -51.52 }, { y: 0 }), 10, "none"),
+            this._waitAndRun(3, () => this.blink(1)),
+        ]);
 
-        // await this.playerMoveToWaypoint(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }), 2, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }), 2, "none");
 
         //debug
         this._instantSetPosition(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }));
@@ -131,8 +131,26 @@ export class StoryManager {
     //               SCENE 03
     // ==========================================
     async scene03_Kitchen() {
-        if (!this.isSetupMode) console.log("--- Scene 3 ---");
-        if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
+        if (!this.isSetupMode) {
+            console.log("--- Scene 3 ---");
+            const lightIds = [
+                'light_Bedroom_1', 'light_Bedroom_2', 'light_Bedroom_3', 
+                'light_Bedroom_4', 'light_Bedroom_5', 'light_Bedroom_6', 'light_Bedroom_7'
+            ];
+
+            const objectsToAnimate = [];
+            lightIds.forEach(id => {
+                const lightObj = this.allLights[id]; // Ambil dari daftar lampu
+                if (lightObj) {
+                    lightObj.castShadow = false; 
+                    objectsToAnimate.push(lightObj);
+                }
+            });
+
+            if (objectsToAnimate.length > 0) {
+                gsap.set(objectsToAnimate, { intensity: 0 });
+            }
+        }
 
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_enterkitchen", { x:-37.11, y:10.91, z:-53.99 }, { y: -90 }), 4, "none");
         
@@ -227,6 +245,9 @@ export class StoryManager {
 
     }
 
+    // ==========================================
+    //               SCENE 04
+    // ==========================================
     async scene04_LongCorridor(){
         if (!this.isSetupMode) console.log("--- Scene 3 ---");
         if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
@@ -246,6 +267,7 @@ export class StoryManager {
 
         ])
 
+        // tikungan 1
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_5", { x: 29, y: 10.91, z: -27 }, { x: 0, y: -13 }), 1, "none"),
         ])
@@ -254,6 +276,7 @@ export class StoryManager {
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_6", { x: 33, y: 10.91, z: -39 }, { x: 0, y: -13 }), 3, "none"),
         ])
 
+        // tikungan 2
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_7", { x: 33, y: 10.91, z: -41 }, { x: 0, y: -86 }), 1, "none"),
         ])
@@ -262,26 +285,33 @@ export class StoryManager {
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_8", { x: 54, y: 10.91, z: -41 }, { x: 0, y: -86 }), 4, "none"),
         ])
 
+        // tikungan 3
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_9", { x: 55, y: 10.91, z: -41 }, { x: 0, y: -169.4 }), 2, "none"),
         ])
 
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_10", { x: 58, y: 10.91, z: -27 }, { x: 0, y: -169.4 }), 4, "none"),
+            this._waitAndRun(1.5, () => this._blinkSequence()),
+
         ])
 
+        // tikungan 4
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_11", { x: 58, y: 10.91, z: -26 }, { x: 0, y: -96 }), 1, "none"),
         ])
 
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_12", { x: 72, y: 10.91, z: -26 }, { x: 0, y: -96 }), 4, "none"),
+
         ])
 
+        // tikungan 5
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_13", { x: 75, y: 10.91, z: -25 }, { x: 0, y: -164 }), 1, "none"),
         ])
 
+        //tikungan 6
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_14", { x: 80, y: 10.91, z: -14 }, { x: 0, y: -180 }), 5, "none"),       
         ])
@@ -321,6 +351,40 @@ export class StoryManager {
         ]);
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene04_run_3", { x: 60, y: 10.91, z: 51 }, { x: 0, y: 90 }), 2, "none"),
+        ]);
+
+        //Klimaks --> terjatuh dan diterkam monster
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_run_4", { x: 49, y: 10.91, z: 53 }, { x: 0, y: 90 }), 1, "none"),
+        ]);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_1", { x: 48, y: 10.91, z: 53 }, { x: -20.5, y: 59.6, z: 25.5}), 0.2, "none"),
+            this._waitAndRun(0.2, () =>this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_2", { x: 47, y: 6.91, z: 53 }, { x: -38.5, y: 59.6, z: 49.5}), 0.2, "none")),
+            this._waitAndRun(0.4, () =>this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_3", { x: 46, y: 4, z: 53 }, { x: -18.5, y: 25.3, z: 39.5}), 0.2, "none")),
+            this._waitAndRun(0.1, () => this.blink(0.3))
+        ]);
+        await this._wait(0.5);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_4", { x: 46, y: 4, z: 53 }, { x: -15.5, y: -57.3, z: 15.5}), 0.5, "none"),
+            this._waitAndRun(0, () => this.moveMonsterTo("Ghost_Long_Corridor",this.defineWaypoint("Scene04_move_monster_2", { x: 79, y: 3, z: 50 }, { x: 0, y: -180 }), 0.6)),
+            this._waitAndRun(0.3, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|walk", 0.1)),
+            this._waitAndRun(0.4, () => this.moveMonsterTo("Ghost_Long_Corridor",this.defineWaypoint("Scene04_move_monster_3", { x: 79, y: 3, z: 53 }, { x: 0, y: 90 }), 0.6)),
+            
+            this._waitAndRun(0.6, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|state_to_crawl", 1)),
+            this._waitAndRun(1.5, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|crawl", 0.1)),
+
+            this._waitAndRun(1.5, () => this.moveMonsterTo("Ghost_Long_Corridor",this.defineWaypoint("Scene04_move_monster_4", { x: 41, y: 3, z: 53 }, { x: 0, y: 90 }), 6)),
+
+            
+            this._waitAndRun(0.5, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_5", { x: 46, y: 5.5, z: 53 }, { x: -18.5, y: -88.3, z: 0}), 0.5, "none")),
+            this._waitAndRun(1.9, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_6", { x: 36, y: 5.5, z: 53 }, { x: 10.5, y: -96.3, z: 0}), 4.5, "none")),
+            this._waitAndRun(6.4, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_7", { x: 35, y: 5.5, z: 53 }, { x: 10.5, y: 93.3, z: 0}), 0.5, "none")),
+            this._waitAndRun(6.9, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_7", { x: 35, y: 5.5, z: 53 }, { x: 10.5, y: -93.3, z: 0}), 0.5, "none")),
+        
+            this._waitAndRun(6.8, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|crawl_idol", 0.1)),
+            this._waitAndRun(8, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|crawl_bite", 0.5)),
+            this._waitAndRun(8.2, () => this.setEyeOpenness(0, 0.5)),
+
         ]);
 
     }
@@ -452,9 +516,11 @@ export class StoryManager {
             // 1. Ambil State Awal
             const startRigY = rig.rotation.y;
             const startCamX = cam.rotation.x;
+            const startCamZ = cam.rotation.z; // [PERBAIKAN] Ambil rotasi Z awal kamera
             const startPos = rig.position.clone();
 
             // 2. Ambil Target dari Waypoint
+            // Pastikan order 'YXZ' sama dengan setting CameraManager agar sinkron
             const targetEuler = new THREE.Euler().setFromQuaternion(waypoint.quaternion, 'YXZ');
 
             // --- LOGIKA DINAMIS: TERDEKAT VS TERJAUH ---
@@ -471,8 +537,9 @@ export class StoryManager {
                 return diff;
             };
 
-            const diffY = calculateDiff(targetEuler.y, startRigY, useLongestPath);
-            const diffX = calculateDiff(targetEuler.x, startCamX, false); // Biasanya X tidak perlu terjauh
+            const diffY = calculateDiff(targetEuler.y, startRigY, useLongestPath); // Y = Rig (Badan)
+            const diffX = calculateDiff(targetEuler.x, startCamX, false);          // X = Camera (Pitch)
+            const diffZ = calculateDiff(targetEuler.z, startCamZ, false);          // [PERBAIKAN] Z = Camera (Roll/Miring)
 
             // 3. Eksekusi Animasi
             const proxy = { t: 0 };
@@ -487,11 +554,12 @@ export class StoryManager {
                     // Terapkan rotasi berdasarkan selisih yang sudah dihitung
                     rig.rotation.y = startRigY + diffY * alpha;
                     cam.rotation.x = startCamX + diffX * alpha;
+                    cam.rotation.z = startCamZ + diffZ * alpha; // [PERBAIKAN] Terapkan animasi Z
                 },
                 onComplete: resolve
             });
         });
-    }   
+    }  
 
     switchViewMode() {
         // Toggle Mode
@@ -923,46 +991,72 @@ export class StoryManager {
                 return;
             }
 
-            // --- LOGIKA BARU: DETEKSI TIPE TARGET ---
-            let targetPosition = new THREE.Vector3();
+            // 1. Siapkan Variable Awal
+            const startPos = monster.position.clone();
+            const startRot = monster.rotation.clone();
 
+            let targetPosition = new THREE.Vector3();
+            let targetEuler = new THREE.Euler();
+            let useRotation = false;
+
+            // 2. Ambil Data dari Waypoint
             if (typeof targetData === 'string') {
-                // Jika inputnya String, cari objek Waypoint-nya dulu
                 const waypoint = this.scene.getObjectByName(targetData);
                 if (waypoint) {
                     targetPosition.copy(waypoint.position);
+                    
+                    // Ambil rotasi Waypoint
+                    targetEuler.setFromQuaternion(waypoint.quaternion, 'YXZ');
+
+                    // [PERBAIKAN] Tambahkan Offset 180 Derajat (PI) di sumbu Y
+                    // Agar monster berputar balik menghadap sesuai arah panah Waypoint
+                    targetEuler.y += Math.PI;
+
+                    useRotation = true;
                 } else {
                     console.error(`❌ Waypoint Monster '${targetData}' tidak ditemukan!`);
                     resolve();
                     return;
                 }
             } else if (targetData.isVector3 || (targetData.x !== undefined)) {
-                // Jika inputnya sudah Vector3 atau object {x,y,z}
                 targetPosition.copy(targetData);
-            } else {
-                console.error("❌ Format target posisi salah. Gunakan Nama Waypoint (String) atau Vector3.");
-                resolve();
-                return;
             }
 
-            console.log(`🧟 Monster '${monsterName}' berjalan ke:`, targetPosition);
+            // 3. Hitung Selisih Rotasi (Shortest Path Logic)
+            const calculateDiff = (target, start) => {
+                let diff = target - start;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                return diff;
+            };
 
-            // Animasi Posisi
-            gsap.to(monster.position, {
-                x: targetPosition.x,
-                y: targetPosition.y,
-                z: targetPosition.z,
+            const diffX = useRotation ? calculateDiff(targetEuler.x, startRot.x) : 0;
+            const diffY = useRotation ? calculateDiff(targetEuler.y, startRot.y) : 0;
+            const diffZ = useRotation ? calculateDiff(targetEuler.z, startRot.z) : 0;
+
+            console.log(`🧟 Monster '${monsterName}' bergerak...`);
+
+            // 4. Eksekusi Animasi
+            const proxy = { t: 0 };
+            gsap.to(proxy, {
+                t: 1,
                 duration: duration,
                 ease: "linear",
                 onUpdate: () => {
-                    // Opsional: Agar monster selalu menghadap ke tujuan selagi jalan
-                    // monster.lookAt(targetPosition); 
+                    const alpha = proxy.t;
+
+                    // A. Update Posisi
+                    monster.position.lerpVectors(startPos, targetPosition, alpha);
+
+                    // B. Update Rotasi
+                    if (useRotation) {
+                        monster.rotation.x = startRot.x + diffX * alpha;
+                        monster.rotation.y = startRot.y + diffY * alpha;
+                        monster.rotation.z = startRot.z + diffZ * alpha;
+                    }
                 },
                 onComplete: resolve
             });
-
-            // Putar badan menghadap tujuan (Instan di awal jalan)
-            monster.lookAt(targetPosition.x, monster.position.y, targetPosition.z);
         });
     }
 
