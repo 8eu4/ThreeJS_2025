@@ -94,7 +94,16 @@ export class LightingManager {
         flashLight.intensity = 0; // Mati (Gelap)
     }
 
+    setSoundManager(manager) {
+        this.soundManager = manager;
+    }
+
     toggleFlashlight(isOn = null) {
+        // [FIX] Play Sound (Use injected SoundManager)
+        if (this.soundManager) {
+            this.soundManager.playSound('flashlight');
+        }
+
         const flashlight = this.lights['player_flashlight'];
 
         const bounce = this.lights['flashlight_bounce'];

@@ -43,7 +43,8 @@ world.setLightingManager(lightingManager);
 
 world.setStoryManager(storyManager);
 
-world.setStoryManager(storyManager);
+lightingManager.setSoundManager(soundManager); // [NEW] Inject ke LightingManager
+
 soundManager.init(); // [NEW] Start loading sounds
 window.soundManager = soundManager; // [NEW] Expose to Console
 

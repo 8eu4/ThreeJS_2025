@@ -165,7 +165,7 @@ export function _loadModels(world, state) {
             scale: new THREE.Vector3(5, 5, 5),
             rotation: new THREE.Euler(0, 0, 0),
 
-            animName: 'Creature_armature|roar',
+            animName: 'Creature_armature|battle_idle',
             visible: false,     // Sembunyi
             fixOrigin: false,
             isMonster: true     // <--- TANDA MONSTER
@@ -194,6 +194,15 @@ export function _loadModels(world, state) {
             fixOrigin: false,
             isMonster: true     // <--- TANDA MONSTER
         },
+        {
+            url: './Models/flashlight.glb',
+            name: 'Prop_Flashlight',
+            position: new THREE.Vector3(-25, 8.53, -56), 
+            scale: new THREE.Vector3(0.1, 0.1, 0.1), 
+            rotation: new THREE.Euler(THREE.MathUtils.degToRad(-54.6), THREE.MathUtils.degToRad(-25.3), THREE.MathUtils.degToRad(-79.0)),
+            visible: true,
+            isMonster: false
+        },
         // {
         //     url: './Models/nightmare_creature_1.glb',
         //     name: 'Ghost_Corridor_Chasing', 
@@ -218,11 +227,23 @@ export function _loadModels(world, state) {
 
         {
             url: './Models/Hand_Flashlight.glb',
-            position: new THREE.Vector3(0, 20, 0),
-            scale: new THREE.Vector3(0.1, 0.1, 0.1),  
+            name: 'Rig_Hand_Held',
+            position: new THREE.Vector3(0, 0, 0),
+            scale: new THREE.Vector3(1, 1, 1),  
             rotation: new THREE.Euler(0, 0, 0),
-            fixOrigin: true, // Bangunan = Fix Origin
-            isMonster: false // Bukan Monster
+            visible: false, // Sembunyi dulu
+            fixOrigin: true, 
+            isMonster: false 
+        },
+        {
+            url: './Models/hand.glb',
+            name: 'Rig_Hand_Empty',
+            position: new THREE.Vector3(0, 0, 0),
+            scale: new THREE.Vector3(1, 1, 1),  
+            rotation: new THREE.Euler(0, 0, 0),
+            visible: false, // Sembunyi dulu
+            fixOrigin: true, 
+            isMonster: false 
         }
 
     ];
@@ -240,6 +261,8 @@ export function _loadModels(world, state) {
                 // --- 1. SET POSISI, ROTASI & ORIGIN ---
                 pivotGroup.position.copy(cfg.position);
                 pivotGroup.rotation.copy(cfg.rotation);
+                pivotGroup.scale.copy(cfg.scale); // [NEW] Juga terapkan scale di sini
+                pivotGroup.visible = (cfg.visible !== undefined) ? cfg.visible : true; // [FIX] Terapkan visibility
 
                 if (cfg.fixOrigin) {
                     model.updateMatrixWorld(true);

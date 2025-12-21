@@ -417,7 +417,7 @@ export class UIManager {
             }
         };
 
-        const sceneOptions = ['scene01_WakeUp', 'scene02_BedroomCorridor', 'scene03_Kitchen', 'scene04_Tutorial'];
+        const sceneOptions = ['scene01_WakeUp', 'scene02_BedroomCorridor', 'scene03_Kitchen', 'scene04_LongCorridor'];
         const specificFolder = storyFolder.addFolder('Select Scene');
         specificFolder.add(sceneParams, 'selectedScene', sceneOptions).name('Scene Name');
         specificFolder.add(sceneParams, 'playScene').name('▶ Play Selected');
@@ -910,7 +910,7 @@ export class UIManager {
 
         const posFolder = folder.addFolder('Position');
         posFolder.add(obj.position, 'x').step(1).decimals(0).listen().onFinishChange(onFinishChange);
-        posFolder.add(obj.position, 'y').step(1).decimals(0).listen().onFinishChange(onFinishChange);
+        posFolder.add(obj.position, 'y').step(0.1).decimals(2).listen().onFinishChange(onFinishChange);
         posFolder.add(obj.position, 'z').step(1).decimals(0).listen().onFinishChange(onFinishChange);
         posFolder.open();
 

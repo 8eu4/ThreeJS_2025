@@ -243,7 +243,7 @@ export class StoryManager {
 
         await this._wait(2);
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_1", { x: -29.5, y: 10.91, z: -48.6 }, { x: 0, y: -47.77 }), 2, "none");
-        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_2", { x: -28, y: 10.91, z: -51 }, { x: -13.7, y: -47.77 }), 1.5, "power2.out");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_2", { x: -27, y: 10.91, z: -53 }, { x: -23.7, y: -47.77 }), 1.5, "power2.out");
 
         await this._wait(2);
 
@@ -256,36 +256,7 @@ export class StoryManager {
     // ==========================================
     //               SCENE 04 (CONTOH)
     // ==========================================
-    async scene04_Tutorial() {
-        // [TUTORIAL MEMBUAT SCENE BARU]
-        // 1. Buat method async seperti ini.
-        // 2. Tentukan titik poin kamera (Waypoint).
 
-        console.log("--- Scene 4: Tutorial ---");
-        
-        // Langkah 1: Teleport ke posisi awal
-        // (Gunakan console log untuk mendapatkan koordinat x,y,z dari Gizmo di mode Orbit)
-        this._instantSetPosition(this.defineWaypoint("Tutorial_Start", { x: -84.53, y: 10.91, z: -22.77 }, { y: 180 }));
-
-        await this._wait(1.0);
-
-        // Langkah 2: Gerakkan Player ke titik baru
-        // "Tutorial_End" belum ada koordinatnya? Tidak apa-apa!
-        // Jalankan saja scene ini, nanti akan muncul KOTAK KUNING di (0,0,0).
-        // Geser kotak itu pakai Gizmo, lalu lihat Console untuk dapat kodenya.
-        await this.playerMoveToWaypoint(
-            this.defineWaypoint("Tutorial_Move1", { x: -84.53, y: 10.91, z: -30 }, { y: 180 }), 
-            3.0 // Durasi 3 detik
-        );
-
-        // Langkah 3: Noleh Kanan
-        await this.playerMoveToWaypoint(
-            this.defineWaypoint("Tutorial_LookRight", { x: -84.53, y: 10.91, z: -30 }, { y: 90 }), 
-            1.5 
-        );
-
-        console.log("Tutorial Selesai!");
-    }
 
     // ==========================================
     //               SCENE 04
