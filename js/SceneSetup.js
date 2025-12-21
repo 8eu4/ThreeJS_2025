@@ -218,33 +218,15 @@ export function _loadModels(world, state) {
 
         {
             url: './Models/water_bottle.glb',
+            name: 'Prop_WaterBottle', // [FIX] Beri nama agar tidak undefined
             position: new THREE.Vector3(-31.48, 8.50, -56.66),
             scale: new THREE.Vector3(0.4, 0.4, 0.4),
             rotation: new THREE.Euler(0, 0, 0),
+            visible: true,
             fixOrigin: true, // Bangunan = Fix Origin
             isMonster: false // Bukan Monster
         },
 
-        {
-            url: './Models/Hand_Flashlight.glb',
-            name: 'Rig_Hand_Held',
-            position: new THREE.Vector3(0, 0, 0),
-            scale: new THREE.Vector3(1, 1, 1),  
-            rotation: new THREE.Euler(0, 0, 0),
-            visible: false, // Sembunyi dulu
-            fixOrigin: true, 
-            isMonster: false 
-        },
-        {
-            url: './Models/hand.glb',
-            name: 'Rig_Hand_Empty',
-            position: new THREE.Vector3(0, 0, 0),
-            scale: new THREE.Vector3(1, 1, 1),  
-            rotation: new THREE.Euler(0, 0, 0),
-            visible: false, // Sembunyi dulu
-            fixOrigin: true, 
-            isMonster: false 
-        }
 
     ];
 
@@ -263,6 +245,7 @@ export function _loadModels(world, state) {
                 pivotGroup.rotation.copy(cfg.rotation);
                 pivotGroup.scale.copy(cfg.scale); // [NEW] Juga terapkan scale di sini
                 pivotGroup.visible = (cfg.visible !== undefined) ? cfg.visible : true; // [FIX] Terapkan visibility
+                console.log(`[SceneSetup] Loaded ${cfg.name}, Visible: ${pivotGroup.visible}`);
 
                 if (cfg.fixOrigin) {
                     model.updateMatrixWorld(true);

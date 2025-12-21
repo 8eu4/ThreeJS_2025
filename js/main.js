@@ -116,6 +116,8 @@ window.addEventListener('click', (event) => {
 }, false); 
 
 window.storyManager = storyManager; 
+window.world = world; // [DEBUG] Expose World
+window.scene = world.scene; // [DEBUG] Expose Scene
 console.log("-- ANIMASI --");
 console.log("storyManager.playFullMovie(true)");
 console.log("-- DEBUG --");

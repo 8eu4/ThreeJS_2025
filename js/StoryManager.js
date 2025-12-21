@@ -152,7 +152,6 @@ export class StoryManager {
                     intensity: 0, 
                     duration: 0.5,
                     onComplete: () => {
-                        objectsToAnimate.forEach(l => l.visible = false);
                         resolve(); 
                     }
                 });
@@ -245,18 +244,29 @@ export class StoryManager {
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_1", { x: -29.5, y: 10.91, z: -48.6 }, { x: 0, y: -47.77 }), 2, "none");
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_2", { x: -27, y: 10.91, z: -53 }, { x: -23.7, y: -47.77 }), 1.5, "power2.out");
 
-        await this._wait(2);
+        await this.hideFlashlight();
+    
+        await this._wait(0.5);
 
         await this.setFlashlightState(true);
+        await this._wait(1.5);
         await this._wait(1.5);
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_walkout_1", { x: -28, y: 10.91, z: -47 }, { x: 0, y: -96.4 }), 2, "none");
         await this.animateDoor("Door_ToCorridor", 90, 2)
     }
 
-    // ==========================================
-    //               SCENE 04 (CONTOH)
-    // ==========================================
-
+    async hideFlashlight() {
+        if (!this.isSetupMode) console.log("🔦 Menjalankan hideFlashlight...");
+        
+        // Cari Prop di Scene
+        const prop = this.scene.getObjectByName('Prop_Flashlight');
+        if (prop) {
+            prop.visible = false;
+            console.log("✅ Prop_Flashlight berhasil di-hide.");
+        } else {
+            console.warn("⚠️ Prop_Flashlight tidak ditemukan di scene.");
+        }
+    }
 
     // ==========================================
     //               SCENE 04
