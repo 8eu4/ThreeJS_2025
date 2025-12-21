@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 export function loadInitialScene(world, state) {
     _createGround(world);
 
+
     // --- OPTIMIZED CUBES ---
     // Gunakan 1 Geometri untuk kedua kubus (Hemat Memori)
     const boxGeo = new THREE.BoxGeometry(10, 10, 10);
@@ -14,7 +15,8 @@ export function loadInitialScene(world, state) {
     const boxMat = new THREE.MeshPhongMaterial({ 
         color: 0xff0000, 
         side: THREE.FrontSide, 
-        shadowSide: THREE.BackSide // <--- OPTIMASI: Shadow dari belakang tidak menutupi wajah depan
+        shadowSide: THREE.BackSide, // <--- OPTIMASI: Shadow dari belakang tidak menutupi wajah depan
+        depthWrite: true
     });
 
     const cubeMesh = new THREE.Mesh(boxGeo, boxMat);
@@ -25,7 +27,8 @@ export function loadInitialScene(world, state) {
     state.addObject(cubeMesh, { isSelectable: true, isDraggable: true });
 
     const cubeMesh2 = new THREE.Mesh(boxGeo, boxMat);
-    cubeMesh2.position.set(2.00, 5.83, 10.88);
+    // [MERGE] Use Aileen's position (8.64) instead of HEAD's (2.00)
+    cubeMesh2.position.set(8.64, 5.83, 10.88);
     cubeMesh2.castShadow = true; 
     cubeMesh2.receiveShadow = true; 
     world.add(cubeMesh2);
@@ -179,6 +182,18 @@ export function _loadModels(world, state) {
             fixOrigin: false,
             isMonster: true     // <--- TANDA MONSTER
         },
+        {
+            url: './Models/nightmare_creature_1.glb',
+            name: 'Ghost_Long_Corridor',
+            position: new THREE.Vector3(80, 3, -19),
+            scale: new THREE.Vector3(5, 5, 5),
+            rotation: new THREE.Euler(0, 0, 0),
+
+            animName: 'Creature_armature|roar',
+            visible: false,     // Sembunyi
+            fixOrigin: false,
+            isMonster: true     // <--- TANDA MONSTER
+        },
         // {
         //     url: './Models/nightmare_creature_1.glb',
         //     name: 'Ghost_Corridor_Chasing', 
@@ -196,6 +211,15 @@ export function _loadModels(world, state) {
             url: './Models/water_bottle.glb',
             position: new THREE.Vector3(-31.48, 8.50, -56.66),
             scale: new THREE.Vector3(0.4, 0.4, 0.4),
+            rotation: new THREE.Euler(0, 0, 0),
+            fixOrigin: true, // Bangunan = Fix Origin
+            isMonster: false // Bukan Monster
+        },
+
+        {
+            url: './Models/Hand_Flashlight.glb',
+            position: new THREE.Vector3(0, 20, 0),
+            scale: new THREE.Vector3(0.1, 0.1, 0.1),  
             rotation: new THREE.Euler(0, 0, 0),
             fixOrigin: true, // Bangunan = Fix Origin
             isMonster: false // Bukan Monster

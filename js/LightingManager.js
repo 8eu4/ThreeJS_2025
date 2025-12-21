@@ -36,7 +36,7 @@ export class LightingManager {
         // 2. Moonlight
         const moonLight = new THREE.DirectionalLight(0x4444aa, 0.5);
         moonLight.position.set(100, 200, 100);
-        moonLight.castShadow = true;
+        moonLight.castShadow = false;
         moonLight.shadow.camera.left = -100;
         moonLight.shadow.camera.right = 100;
         moonLight.shadow.camera.top = 100;
@@ -60,8 +60,8 @@ export class LightingManager {
     _setupFlashlight() {
         const flashLight = new THREE.SpotLight(0xfffdd0);
         flashLight.name = "Player Flashlight";
-        flashLight.angle = Math.PI / 6;
-        flashLight.penumbra = 0.6;
+        flashLight.angle = Math.PI / 5;
+        flashLight.penumbra = 0.99;
         flashLight.decay = 2;
         flashLight.distance = 100;
         flashLight.castShadow = true;
@@ -75,36 +75,45 @@ export class LightingManager {
         flashLight.shadow.camera.near = 0.001;
         flashLight.shadow.camera.far = 100;
 
-        flashLight.position.set(0, -1, 0);
+        flashLight.position.set(0, 0, 0);
+        flashLight.target.position.set(0, 0, -15);
 
-        // 2. POSISI TARGET (Di Tengah Depan Kamera)
-        // Sesuai requestmu: "ngambil posisi kamera ... ditambah vektor (0, -2, -15)"
-        flashLight.target.position.set(0, -1, -15);
+        const bounceLight = new THREE.PointLight(0xfffdd0, 0, 15);
+        bounceLight.name = "Flashlight_Bounce";
 
         this.camera.add(flashLight);
         this.camera.add(flashLight.target);
+        this.camera.add(bounceLight);
 
         // this.lights['player_flashlight'] = flashLight;
         // flashLight.visible = false;
 
         this.lights['player_flashlight'] = flashLight;
+        this.lights['flashlight_bounce'] = bounceLight;
         flashLight.visible = true;
         flashLight.intensity = 0; // Mati (Gelap)
     }
 
-    toggleFlashlight() {
+    toggleFlashlight(isOn = null) {
         const flashlight = this.lights['player_flashlight'];
-        if (flashlight) {
-            // Play Sound Effect
-            if (window.soundManager) {
-                window.soundManager.playSound('flashlight');
-            }
 
-            if (flashlight.intensity > 0) {
-                flashlight.intensity = 0; // OFF
-            } else {
-                flashlight.intensity = 500; // ON
-            }
+        const bounce = this.lights['flashlight_bounce'];
+        
+        if (!flashlight) return;
+
+        const targetOn = (isOn !== null) ? isOn : (flashlight.intensity === 0);
+
+        if (targetOn) {
+            flashlight.intensity = 100; // ON
+            bounce.intensity = 5;
+        } else {
+            flashlight.intensity = 0;   // OFF
+            bounce.intensity = 0;
+        }
+
+        // Paksa update shadow sekali saat dinyalakan
+        if (targetOn && flashlight.castShadow) {
+            flashlight.shadow.needsUpdate = true;
         }
     }
 
@@ -114,9 +123,9 @@ export class LightingManager {
             new THREE.Vector3(0, 20, -20),   // start
             new THREE.Vector3(0, 20, 15), // end
             "#FFFFFF",          // Warna
-            2200,              // Intensitas
+            2000,              // Intensitas
             50,               // Distance
-            Math.PI / 2,       // Angle 
+            Math.PI / 4,       // Angle 
             0.5,                // Penumbra 
             true
         );
@@ -158,7 +167,6 @@ export class LightingManager {
             80,               // Distance
             Math.PI / 2,       // Angle 
             0.1,                // Penumbra 
-            true
         );
 
         this._createSpotLight(
@@ -170,7 +178,6 @@ export class LightingManager {
             120,               // Distance
             Math.PI / 2,       // Angle 
             0.1,                // Penumbra 
-            true
         );
 
 
@@ -183,7 +190,6 @@ export class LightingManager {
             80,               // Distance
             Math.PI / 2,       // Angle 
             0.1,                // Penumbra 
-            true
         );
 
         this._createSpotLight(
@@ -195,7 +201,6 @@ export class LightingManager {
             120,               // Distance
             Math.PI / 2,       // Angle 
             0.1,                // Penumbra 
-            true
         );
 
         this._createSpotLight(
@@ -207,7 +212,6 @@ export class LightingManager {
             120,               // Distance
             Math.PI / 2,       // Angle 
             0.1,                // Penumbra 
-            true
         );
 
 
@@ -227,8 +231,8 @@ export class LightingManager {
 
         if (castShadow) {
             light.castShadow = true;
-            light.shadow.mapSize.width = 512; // Resolusi rendah cukup
-            light.shadow.mapSize.height = 512;
+            light.shadow.mapSize.width = 128; // Resolusi rendah cukup
+            light.shadow.mapSize.height = 128;
             light.shadow.bias = -0.00001;
             light.shadow.normalBias = 0.02;
             light.shadow.camera.near = 0.01;
@@ -252,15 +256,19 @@ export class LightingManager {
         light.distance = distance;
         light.angle = angle;
         light.penumbra = penumbra;
+        light.decay = 2;
         light.castShadow = castShadow || false;
 
         if (light.castShadow) {
-            light.shadow.mapSize.width = 512;
-            light.shadow.mapSize.height = 512;
-            light.shadow.bias = 0;
-            light.shadow.normalBias = 0.05;
+            light.shadow.mapSize.width = 256;
+            light.shadow.mapSize.height = 256;
 
-            light.shadow.camera.near = 0.001;
+            light.shadow.bias = -0.0001;
+            light.shadow.normalBias = 0.02;
+
+            light.shadow.camera.near = 0.5;
+            light.shadow.camera.far = distance;
+            light.shadow.camera.fov = THREE.MathUtils.radToDeg(angle) * 2;
         }
 
         // Setup Source (Posisi Lampu)
@@ -298,21 +306,6 @@ export class LightingManager {
     }
 
 
-    _createStaticLight(id, pos, color, intensity, distance) {
-        const light = new THREE.PointLight(color, intensity, distance, 2);
-        light.position.copy(pos);
-        light.castShadow = false;
-
-        this.scene.add(light);
-        this._setupCommonLightProperties(light, id, intensity);
-
-        const helper = new THREE.PointLightHelper(light, 20);
-        this.scene.add(helper);
-
-        if (!this.helpers) this.helpers = [];
-        this.helpers.push(helper);
-    }
-
     // =========================================================
     // UTILITIES
     // =========================================================
@@ -347,7 +340,6 @@ export class LightingManager {
 
     _setupCommonLightProperties(light, id, intensity) {
         light.name = id;
-        light.castShadow = false;
         light.userData.baseIntensity = intensity;
         light.userData.isFlickering = false;
         light.userData.flickerTimer = 0;

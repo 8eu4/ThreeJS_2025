@@ -21,7 +21,7 @@ export class StoryManager {
 
         // untuk debug
         this.currentViewMode = 'ORBIT';
-
+        this.allLights = this.lightingManager.lights;
 
         // Set kondisi awal Buka (Tanpa animasi)
         this._preloadAllScenes().then(() => {
@@ -101,23 +101,23 @@ export class StoryManager {
         if (!this.isSetupMode) console.log("--- Scene 2 ---");
         if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
 
-        // await this.runParallel([
-        //     this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walkoutside", { x: -94.75, y: 10.91, z: -21 }, { y: 0 }), 3),
-        //     this.moveMonsterTo("Ghost_Corridor", this.defineWaypoint("Scene02_monsterwalk_m", { x: -82.96, y: 3.53, z: -54.34 }, { y: -90 }), 6),
-        //     this._waitAndRun(3, () => this._blinkSequence()),
-        // ]);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walkoutside", { x: -94.75, y: 10.91, z: -21 }, { y: 0 }), 3),
+            this.moveMonsterTo("Ghost_Corridor", this.defineWaypoint("Scene02_monsterwalk_m", { x: -82.96, y: 3.53, z: -54.34 }, { y: -90 }), 6),
+            this._waitAndRun(3, () => this._blinkSequence()),
+        ]);
 
-        // await this.setMonsterVisibility("Ghost_Corridor", false);
+        await this.setMonsterVisibility("Ghost_Corridor", false);
 
-        // await this.runParallel([
-        //     this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walktocurve", { x: -94.75, y: 10.91, z: -51.52 }, { y: 0 }), 10, "none"),
-        //     this._waitAndRun(3, () => this.blink(1)),
-        // ]);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walktocurve", { x: -94.75, y: 10.91, z: -51.52 }, { y: 0 }), 10, "none"),
+            this._waitAndRun(3, () => this.blink(1)),
+        ]);
 
-        // await this.playerMoveToWaypoint(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }), 2, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }), 2, "power2.in");
 
         //debug
-        this._instantSetPosition(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }));
+        // this._instantSetPosition(this.defineWaypoint("Scene02_turn", { x: -89.28, y: 10.91, z: -54.90 }, { y: -90 }));
 
         await this.runParallel([
             this.playerMoveToWaypoint(this.defineWaypoint("Scene02_walktokitchen", { x: -47.06, y: 10.91, z: -54.90 }, { y: -90 }), 10, "none"),
@@ -130,16 +130,56 @@ export class StoryManager {
     // ==========================================
     //               SCENE 03
     // ==========================================
+    turnOffLamps(){
+        if (this.isSetupMode) return Promise.resolve();
+        return new Promise(resolve => {
+            const lightIds = [
+                'light_Bedroom_1', 'light_Bedroom_2', 'light_Bedroom_3', 
+                'light_Bedroom_4', 'light_Bedroom_5', 'light_Bedroom_6', 'light_Bedroom_7'
+            ];
+
+            const objectsToAnimate = [];
+            lightIds.forEach(id => {
+                const lightObj = this.allLights[id]; // Mengambil dari LightingManager
+                if (lightObj) {
+                    objectsToAnimate.push(lightObj);
+                }
+            });
+
+            if (objectsToAnimate.length > 0) {
+                // Gunakan GSAP untuk mematikan intensitas dan sembunyikan saat selesai
+                gsap.to(objectsToAnimate, { 
+                    intensity: 0, 
+                    duration: 0.5,
+                    onComplete: () => {
+                        objectsToAnimate.forEach(l => l.visible = false);
+                        resolve(); 
+                    }
+                });
+            } else {
+                resolve();
+            }
+        });
+    }
     async scene03_Kitchen() {
-        if (!this.isSetupMode) console.log("--- Scene 3 ---");
-        if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
+        if (!this.isSetupMode) {
+            console.log("--- Scene 3 ---");
+        }
 
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_enterkitchen", { x:-37.11, y:10.91, z:-53.99 }, { y: -90 }), 4, "none");
         
         await this.runParallel([
             this.animateDoor("Door_ToKitchen", 0, 1),
-            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x:-33.17, y:10.91, z:-53.99 }, { x:-21.00, y:-31.00 }), 4, "power2.in")
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_turntobottle", { x:-33.17, y:10.91, z:-53.99 }, { x:-21.00, y:-31.00 }), 4, "power2.in"),
         ]);
+        
+        await this._wait(1);
+        if (!this.isSetupMode) { 
+            await this.turnOffLamps();
+        }
+        await this.turnOffLamps()
+        await this._wait(1);
+
 
         await this.runParallel([
             this._setLightFlicker('light_kitchen_1', true, 0.3, 1),
@@ -160,22 +200,7 @@ export class StoryManager {
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_felldown3", { x:-29.49, y:7.90, z:-47.89 }, { x:-5.70, y:-10.60, z:-88.80 }), 0.4, "none");
         await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_felldown4", { x:-28.37, y:4.15, z:-47.67 }, { x:-5.70, y:-10.60, z:-88.80 }), 0.3, "none");
         
-        // await this._wait(1);
-        // await this._waitAndRun(0.5, () => this.playerMoveToWaypoint(
-        //     this.defineWaypoint("Scene03_confuseright_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: -70 }), 0.5, "none"
-        // ));
-        // this.playerMoveToWaypoint(this.defineWaypoint("Scene03_confuseleft_2", { x: -31.02, y: 10.91, z: -50.41 }, { y: 70 }), 0.5, "none"),
-        // this._waitAndRun(0.5, () => this.playerMoveToWaypoint("Scene03_confuseleft_2", 1.5, "none")),
-        // this._waitAndRun(1.5, () => this.playerMoveToWaypoint("Scene03_backaway", 0.5, "none")),
-
-        // await this.runParallel([
-        //     this._waitAndRun(3, () => this.playerMoveToWaypoint(
-        //         this.defineWaypoint("Scene03_scared_1", { x: -33.47, y: 10.91, z: -48.18 }, { x: -59, y: -59 }), 0.5, "power2.out"
-        //     )),
-        //     this._waitAndRun(3.2, () => this.setEyeOpenness(0, 0.5)),
-        // ]);
-
-        await this._wait(2);
+        await this._wait(1);
 
         await this.runParallel([
             this.setMonsterVisibility("Ghost_Kitchen_Window", false),
@@ -191,13 +216,41 @@ export class StoryManager {
             this.playerMoveToWaypoint(this.defineWaypoint("Scene03_scared_3", { x: -29.19, y: 8.81, z: -48.18 }, { x: 33, y: 63 }), 0.5, "power2.out"),
             this._waitAndRun(0.5, () => this.playMonsterAnimation("Ghost_Kitchen", "Creature_armature|attack_2", 1)),
             this._waitAndRun(0.7, () => this.playerMoveToWaypoint(
-                this.defineWaypoint("Scene03_scared_4", { x: -28.89, y: 5.31, z: -48.18 }, { x: -23, y: 57 }), 1.5, "power2.in"
+                this.defineWaypoint("Scene03_scared_4", { x: -28.89, y: 5.31, z: -48.18 }, { x: -45, y: 57}), 1.5, "power2.in"
             )),
+            this._waitAndRun(1.3, () => this.setEyeOpenness(0, 1))
         ]);
-        
-        // Kembalikan cahaya normal
-        this._setLightFlicker('light_kitchen_1', false);
-        this._setLightFlicker('light_kitchen_2', false);
+        await this._wait(5);
+        await this.setMonsterVisibility("Ghost_Kitchen", false);
+        await this.setEyeOpenness(1.0, 2.5);
+        await this._wait(1);
+        await this.runParallel([
+            this._setLightFlicker('light_kitchen_1', true, 0, 0),
+            this._setLightFlicker('light_kitchen_2', true, 0, 0),
+        ]);
+        await this._wait(1);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_relief_1", { x: -28.89, y: 5.31, z: -48.18 }, { x: -40, y: 80 }), 2, "power2.out");
+        await this._wait(1);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_relief_2", { x: -28.89, y: 5.31, z: -48.18 }, { x: -40, y: 50 }), 2, "power2.out");
+
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene03_standup_1", { x: -29, y: 7, z: -48 }, { x: -50, y: 77.3, z: 10 }), 2, "none"),
+            this._waitAndRun(1, () => this._blinkSequence()),
+        ]);
+
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_standup_2", { x: -29.5, y: 10.91, z: -48.6 }, { x: 0, y: 69.3 }), 2, "power2.out")
+
+        await this._wait(2);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_1", { x: -29.5, y: 10.91, z: -48.6 }, { x: 0, y: -47.77 }), 2, "none");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_getFlash_2", { x: -28, y: 10.91, z: -51 }, { x: -13.7, y: -47.77 }), 1.5, "power2.out");
+
+        await this._wait(2);
+
+        await this.setFlashlightState(true);
+        await this._wait(1.5);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene03_walkout_1", { x: -28, y: 10.91, z: -47 }, { x: 0, y: -96.4 }), 2, "none");
+        await this.animateDoor("Door_ToCorridor", 90, 2)
     }
 
     // ==========================================
@@ -235,6 +288,150 @@ export class StoryManager {
     }
 
     // ==========================================
+    //               SCENE 04
+    // ==========================================
+    async scene04_LongCorridor(){
+        if (!this.isSetupMode) console.log("--- Scene 3 ---");
+        if (this.currentViewMode === 'FPS') this._setGuiVisibility(false);
+
+        // jalan menyusuri lorong
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_1", { x: -20, y: 10.91, z: -47 }, { x: 0, y: -180 }), 2, "power2.in");
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_2", { x: -20, y: 10.91, z: -34 }, { x: 0, y: -180 }), 4, "none");
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_3", { x: -20, y: 10.91, z: -29 }, { x: 0, y: -90 }), 1, "none"),
+            this._waitAndRun(0.5, () => this._blinkSequence()),
+
+        ]);
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_4", { x: 27, y: 10.91, z: -27 }, { x: 0, y: -90 }), 8, "none"),
+            this._waitAndRun(4, () => this._blinkSequence()),
+
+        ])
+
+        // tikungan 1
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_5", { x: 29, y: 10.91, z: -27 }, { x: 0, y: -13 }), 1, "none"),
+        ])
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_6", { x: 33, y: 10.91, z: -39 }, { x: 0, y: -13 }), 3, "none"),
+        ])
+
+        // tikungan 2
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_7", { x: 33, y: 10.91, z: -41 }, { x: 0, y: -86 }), 1, "none"),
+        ])
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_8", { x: 54, y: 10.91, z: -41 }, { x: 0, y: -86 }), 4, "none"),
+        ])
+
+        // tikungan 3
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_9", { x: 55, y: 10.91, z: -41 }, { x: 0, y: -169.4 }), 2, "none"),
+        ])
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_10", { x: 58, y: 10.91, z: -27 }, { x: 0, y: -169.4 }), 4, "none"),
+            this._waitAndRun(1.5, () => this._blinkSequence()),
+
+        ])
+
+        // tikungan 4
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_11", { x: 58, y: 10.91, z: -26 }, { x: 0, y: -96 }), 1, "none"),
+        ])
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_12", { x: 72, y: 10.91, z: -26 }, { x: 0, y: -96 }), 4, "none"),
+
+        ])
+
+        // tikungan 5
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_13", { x: 75, y: 10.91, z: -25 }, { x: 0, y: -164 }), 1, "none"),
+        ])
+
+        //tikungan 6
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_14", { x: 80, y: 10.91, z: -14 }, { x: 0, y: -180 }), 5, "none"),       
+        ])
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_15", { x: 80, y: 10.91, z: -1 }, { x: 0, y: -180 }), 5, "none"),
+        ])
+
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_walk_15", { x: 80, y: 10.91, z: 2 }, { x: 0, y: -180 }), 5, "power2.out"),
+            this._waitAndRun(4, () => this._blinkSequence()),
+            this._waitAndRun(3, () => this.setMonsterVisibility("Ghost_Long_Corridor", true)),
+        ])
+
+        //mulai melihat monster
+        await this._wait(2);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_turn_around", { x: 80, y: 10.91, z: 2 }, { x: 0, y: 0 }), 5, "power2.inOut"),
+            this._waitAndRun(4, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|bite", 1)),
+
+        ]);
+        await this.playerMoveToWaypoint(this.defineWaypoint("Scene04_turn_around_back", { x: 80, y: 10.91, z: 2 }, { x: 0, y: -180 }), 0.5, "power2.inOut");
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_run_1", { x: 80, y: 10.91, z: 49 }, { x: 0, y: -180 }), 4, "none"),
+            this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|Run", 1),
+            this.moveMonsterTo("Ghost_Long_Corridor", this.defineWaypoint("Scene04_move_monster_1", { x: 79, y: 3, z: 20 }, { x: 0, y: -180 }), 3.9),
+        ]);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_look_back_1", { x: 80, y: 10.91, z: 50 }, { x: 0, y: 0 }), 0.5, "none"),
+
+        ]);
+        await this.runParallel([
+            this._wait(0.7),
+            this._waitAndRun(0, () => this.moveMonsterTo("Ghost_Long_Corridor", this.defineWaypoint("Scene04_move_monster_2", { x: 79, y: 3, z: 32 }, { x: 0, y: -180 }), 0.7)),
+            this._waitAndRun(0.6, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_run_2", { x: 80, y: 10.91, z: 51 }, { x: 0, y: 90 }), 0.4, "none")),
+
+        ]);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_run_3", { x: 60, y: 10.91, z: 51 }, { x: 0, y: 90 }), 2, "none"),
+        ]);
+
+        //Klimaks --> terjatuh dan diterkam monster
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_run_4", { x: 49, y: 10.91, z: 53 }, { x: 0, y: 90 }), 1, "none"),
+        ]);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_1", { x: 48, y: 10.91, z: 53 }, { x: -20.5, y: 59.6, z: 25.5}), 0.2, "none"),
+            this._waitAndRun(0.2, () =>this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_2", { x: 47, y: 6.91, z: 53 }, { x: -38.5, y: 59.6, z: 49.5}), 0.2, "none")),
+            this._waitAndRun(0.4, () =>this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_3", { x: 46, y: 4, z: 53 }, { x: -18.5, y: 25.3, z: 39.5}), 0.2, "none")),
+            this._waitAndRun(0.1, () => this.blink(0.3))
+        ]);
+        await this._wait(0.5);
+        await this.runParallel([
+            this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_4", { x: 46, y: 4, z: 53 }, { x: -15.5, y: -57.3, z: 15.5}), 0.5, "none"),
+            this._waitAndRun(0, () => this.moveMonsterTo("Ghost_Long_Corridor",this.defineWaypoint("Scene04_move_monster_2", { x: 79, y: 3, z: 50 }, { x: 0, y: -180 }), 0.6)),
+            this._waitAndRun(0.3, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|walk", 0.1)),
+            this._waitAndRun(0.4, () => this.moveMonsterTo("Ghost_Long_Corridor",this.defineWaypoint("Scene04_move_monster_3", { x: 79, y: 3, z: 53 }, { x: 0, y: 90 }), 0.6)),
+            
+            this._waitAndRun(0.6, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|state_to_crawl", 1)),
+            this._waitAndRun(1.5, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|crawl", 0.1)),
+
+            this._waitAndRun(1.5, () => this.moveMonsterTo("Ghost_Long_Corridor",this.defineWaypoint("Scene04_move_monster_4", { x: 41, y: 3, z: 53 }, { x: 0, y: 90 }), 6)),
+
+            
+            this._waitAndRun(0.5, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_5", { x: 46, y: 5.5, z: 53 }, { x: -18.5, y: -88.3, z: 0}), 0.5, "none")),
+            this._waitAndRun(1.9, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_6", { x: 36, y: 5.5, z: 53 }, { x: 10.5, y: -96.3, z: 0}), 4.5, "none")),
+            this._waitAndRun(6.4, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_7", { x: 35, y: 5.5, z: 53 }, { x: 10.5, y: 93.3, z: 0}), 0.5, "none")),
+            this._waitAndRun(6.9, () => this.playerMoveToWaypoint(this.defineWaypoint("Scene04_fell_7", { x: 35, y: 5.5, z: 53 }, { x: 10.5, y: -93.3, z: 0}), 0.5, "none")),
+        
+            this._waitAndRun(6.8, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|crawl_idol", 0.1)),
+            this._waitAndRun(8, () => this.playMonsterAnimation("Ghost_Long_Corridor", "Creature_armature|crawl_bite", 0.5)),
+            this._waitAndRun(8.2, () => this.setEyeOpenness(0, 0.5)),
+
+        ]);
+        await this._wait(1);
+
+    }
+    // ==========================================
     //           CORE SYSTEM
     // ==========================================
 
@@ -267,6 +464,7 @@ export class StoryManager {
             // await this.scene01_WakeUp();
             // await this.scene02_BedroomCorridor();
             await this.scene03_Kitchen();
+            await this.scene04_LongCorridor();
             // --- SELESAI ---
             
             console.log("🎬 FILM SELESAI.");
@@ -476,7 +674,10 @@ export class StoryManager {
             const cam = this.cameraManager.camera;
             const startRigY = rig.rotation.y;
             const startCamX = cam.rotation.x;
+            const startCamZ = cam.rotation.z; // [PERBAIKAN] Ambil rotasi Z awal kamera
             const startPos = rig.position.clone();
+            // 2. Ambil Target dari Waypoint
+            // Pastikan order 'YXZ' sama dengan setting CameraManager agar sinkron
             const targetEuler = new THREE.Euler().setFromQuaternion(waypoint.quaternion, 'YXZ');
 
             const calculateDiff = (target, start, longest) => {
@@ -487,8 +688,9 @@ export class StoryManager {
                 return diff;
             };
 
-            const diffY = calculateDiff(targetEuler.y, startRigY, useLongestPath);
-            const diffX = calculateDiff(targetEuler.x, startCamX, false);
+            const diffY = calculateDiff(targetEuler.y, startRigY, useLongestPath); // Y = Rig (Badan)
+            const diffX = calculateDiff(targetEuler.x, startCamX, false);          // X = Camera (Pitch)
+            const diffZ = calculateDiff(targetEuler.z, startCamZ, false);          // [PERBAIKAN] Z = Camera (Roll/Miring)
 
             const proxy = { t: 0 };
             gsap.to(proxy, {
@@ -496,22 +698,25 @@ export class StoryManager {
                 duration: duration,
                 ease: easeType,
                 onUpdate: () => {
-                   if (this.isCancelled) {
-                       gsap.killTweensOf(proxy);
-                       // No resolve, let it die
-                       return; 
-                   }
-                   const alpha = proxy.t;
-                   rig.position.lerpVectors(startPos, waypoint.position, alpha);
-                   rig.rotation.y = startRigY + diffY * alpha;
-                   cam.rotation.x = startCamX + diffX * alpha;
+                    if (this.isCancelled) {
+                        gsap.killTweensOf(proxy);
+                        // No resolve, let it die
+                        return; 
+                    }
+                    const alpha = proxy.t;
+                    rig.position.lerpVectors(startPos, waypoint.position, alpha);
+
+                    // Terapkan rotasi berdasarkan selisih yang sudah dihitung
+                    rig.rotation.y = startRigY + diffY * alpha;
+                    cam.rotation.x = startCamX + diffX * alpha;
+                    cam.rotation.z = startCamZ + diffZ * alpha; // [PERBAIKAN] Terapkan animasi Z
                 },
                 onComplete: () => {
                     if (!this.isCancelled) resolve();
                 }
             });
         });
-    }   
+    }  
 
     animateDoor(doorName, targetAngleDeg, duration) {
         if (this.isSetupMode) return Promise.resolve();
@@ -648,8 +853,17 @@ export class StoryManager {
         }
     }
 
+    setFlashlightState(isOn) {
+        // Cek SetupMode agar tidak dijalankan saat pre-loading scene
+        if (this.isSetupMode) return;
 
-
+        if (this.lightingManager) {
+            console.log(`[Story] Mengatur Senter ke: ${isOn ? 'NYALA' : 'MATI'}`);
+            this.lightingManager.toggleFlashlight(isOn);
+        } else {
+            console.warn("⚠️ LightingManager belum terhubung ke StoryManager.");
+        }
+    }
 
 
     _tweenCameraRotation(x, y, z, duration) {
@@ -972,46 +1186,72 @@ export class StoryManager {
                 return;
             }
 
-            // --- LOGIKA BARU: DETEKSI TIPE TARGET ---
-            let targetPosition = new THREE.Vector3();
+            // 1. Siapkan Variable Awal
+            const startPos = monster.position.clone();
+            const startRot = monster.rotation.clone();
 
+            let targetPosition = new THREE.Vector3();
+            let targetEuler = new THREE.Euler();
+            let useRotation = false;
+
+            // 2. Ambil Data dari Waypoint
             if (typeof targetData === 'string') {
-                // Jika inputnya String, cari objek Waypoint-nya dulu
                 const waypoint = this.scene.getObjectByName(targetData);
                 if (waypoint) {
                     targetPosition.copy(waypoint.position);
+                    
+                    // Ambil rotasi Waypoint
+                    targetEuler.setFromQuaternion(waypoint.quaternion, 'YXZ');
+
+                    // [PERBAIKAN] Tambahkan Offset 180 Derajat (PI) di sumbu Y
+                    // Agar monster berputar balik menghadap sesuai arah panah Waypoint
+                    targetEuler.y += Math.PI;
+
+                    useRotation = true;
                 } else {
                     console.error(`❌ Waypoint Monster '${targetData}' tidak ditemukan!`);
                     resolve();
                     return;
                 }
             } else if (targetData.isVector3 || (targetData.x !== undefined)) {
-                // Jika inputnya sudah Vector3 atau object {x,y,z}
                 targetPosition.copy(targetData);
-            } else {
-                console.error("❌ Format target posisi salah. Gunakan Nama Waypoint (String) atau Vector3.");
-                resolve();
-                return;
             }
 
-            console.log(`🧟 Monster '${monsterName}' berjalan ke:`, targetPosition);
+            // 3. Hitung Selisih Rotasi (Shortest Path Logic)
+            const calculateDiff = (target, start) => {
+                let diff = target - start;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                return diff;
+            };
 
-            // Animasi Posisi
-            gsap.to(monster.position, {
-                x: targetPosition.x,
-                y: targetPosition.y,
-                z: targetPosition.z,
+            const diffX = useRotation ? calculateDiff(targetEuler.x, startRot.x) : 0;
+            const diffY = useRotation ? calculateDiff(targetEuler.y, startRot.y) : 0;
+            const diffZ = useRotation ? calculateDiff(targetEuler.z, startRot.z) : 0;
+
+            console.log(`🧟 Monster '${monsterName}' bergerak...`);
+
+            // 4. Eksekusi Animasi
+            const proxy = { t: 0 };
+            gsap.to(proxy, {
+                t: 1,
                 duration: duration,
                 ease: "linear",
                 onUpdate: () => {
-                    // Opsional: Agar monster selalu menghadap ke tujuan selagi jalan
-                    // monster.lookAt(targetPosition); 
+                    const alpha = proxy.t;
+
+                    // A. Update Posisi
+                    monster.position.lerpVectors(startPos, targetPosition, alpha);
+
+                    // B. Update Rotasi
+                    if (useRotation) {
+                        monster.rotation.x = startRot.x + diffX * alpha;
+                        monster.rotation.y = startRot.y + diffY * alpha;
+                        monster.rotation.z = startRot.z + diffZ * alpha;
+                    }
                 },
                 onComplete: resolve
             });
-
-            // Putar badan menghadap tujuan (Instan di awal jalan)
-            monster.lookAt(targetPosition.x, monster.position.y, targetPosition.z);
         });
     }
 
