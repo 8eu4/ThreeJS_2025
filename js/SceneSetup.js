@@ -209,6 +209,15 @@ export function _loadModels(world, state) {
             rotation: new THREE.Euler(0, 0, 0),
             fixOrigin: true, // Bangunan = Fix Origin
             isMonster: false // Bukan Monster
+        },
+
+        {
+            url: './Models/Hand_Flashlight.glb',
+            position: new THREE.Vector3(0, 20, 0),
+            scale: new THREE.Vector3(0.1, 0.1, 0.1),  
+            rotation: new THREE.Euler(0, 0, 0),
+            fixOrigin: true, // Bangunan = Fix Origin
+            isMonster: false // Bukan Monster
         }
 
     ];

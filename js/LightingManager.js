@@ -94,30 +94,25 @@ export class LightingManager {
         flashLight.intensity = 0; // Mati (Gelap)
     }
 
-    toggleFlashlight() {
+    toggleFlashlight(isOn = null) {
         const flashlight = this.lights['player_flashlight'];
         const bounce = this.lights['flashlight_bounce'];
-        if (flashlight) {
-            if (flashlight.intensity > 0) {
-                flashlight.intensity = 0; // OFF
-                bounce.intensity = 0;
-            } else {
-                flashlight.intensity = 100; // ON
-                bounce.intensity = 5;
-            }
+        
+        if (!flashlight) return;
+
+        const targetOn = (isOn !== null) ? isOn : (flashlight.intensity === 0);
+
+        if (targetOn) {
+            flashlight.intensity = 100; // ON
+            bounce.intensity = 5;
+        } else {
+            flashlight.intensity = 0;   // OFF
+            bounce.intensity = 0;
         }
-    }
-    toggleFlashlight(isOn) {
-        const flashlight = this.lights['player_flashlight'];
-        const bounce = this.lights['flashlight_bounce'];
-        if (isOn) {
-            if (flashlight.intensity > 0) {
-                flashlight.intensity = 0; // OFF
-                bounce.intensity = 0;
-            } else {
-                flashlight.intensity = 100; // ON
-                bounce.intensity = 5;
-            }
+
+        // Paksa update shadow sekali saat dinyalakan
+        if (targetOn && flashlight.castShadow) {
+            flashlight.shadow.needsUpdate = true;
         }
     }
 
